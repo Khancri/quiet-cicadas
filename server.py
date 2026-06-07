@@ -6,7 +6,7 @@ CORS(app)
 
 @app.route('/')
 def main():
-    return send_from_directory('client.html')
+    return send_from_directory('.', 'client.html')
 
 
 if __name__ == '__main__':
