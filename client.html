@@ -4,16 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>quiet cicadas</title>
-    <link rel="stylesheet" href="file/styles.css">
+    <link rel="stylesheet" href="file/base.css">
+    <link rel="stylesheet" href="file/client.css">
 </head>
 <body>
     <h1>Seems like you made it.</h1>
     <div id="profile-setup">
         <div id="portal">
-            <div class="slide">
+            <div class="slide" id="username-slide">
                 <label for="username-input">Select a username.</label>
                 <input type="text" id="username-input">
                 <button id="username-submit">thats me</button>
+            </div>
+            <div class="slide" id="password-slide">
+                <label for="password-input">What's your pass phrase?</label>
+                <input type="text" id="password-input">
+                <button id="password-submit">mhm!</button>
             </div>
         </div>
     </div>
