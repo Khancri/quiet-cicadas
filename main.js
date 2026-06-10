@@ -5,23 +5,37 @@ document.getElementById('username-submit').onclick = async () => {
     const exists = await (await fetch(`/profile/exists/${encodeURIComponent(username)}`)).json()
     console.log(exists.ok);
     if (exists.ok == true) {
-        document.getElementById('username-input').style.border = 'solid darkred 1px';
-        return;
+        alert('omg')
+        document.getElementById('password-submit').onclick = async () => {
+            password = document.getElementById('password-input').value;
+            logIn()
+        }
+    } else {
+        document.getElementById('password-submit').onclick = async () => {
+            password = document.getElementById('password-input').value;
+            signUp()
+        }
     }
     
     document.getElementById('username-slide').classList.add('dissolve-slide-out')
     document.getElementById('password-slide').classList.add('dissolve-slide-in')
 };
 
-document.getElementById('password-submit').onclick = async () => {
-    password = document.getElementById('password-input').value;
-    signUp()
+async function logIn() {
+    const done = await fetch('/login', {method: 'POST', headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({'username': username, 'password': password})});
+    if (done.status !== 200) {
+        alert("we don't know if the passwords correct the shit crashed on us");
+        return;
+    }
+    const json = await done.json()
+    if (json.ok === true) {
+        alert('yahoo!');
+        window.location.href = '/chat';
+    }
 }
 
 async function signUp() {
-
-    
-    
     const done = await fetch(`/signup`, {method: 'POST', headers: {
         'Content-Type': 'application/json' // Tell the server you are sending JSON
       },

@@ -41,6 +41,16 @@ def me():
         return jsonify({'ok': False})
     return jsonify({'username': session['username']})
 
+@app.route('/login', methods=['POST'])
+def login():
+    info = request.json
+    username = info['username']; password = info['password'];
+    oldPassword = load('profiles.json')[username]['password']
+    if (bcrypt.checkpw(password.encode('utf-8'), oldPassword.encode())):
+        session['username'] = username
+        return jsonify({'ok': True})
+    return jsonify({'ok': False})
+
 @app.route('/signup', methods=['POST'])
 def signup():
     info = request.json

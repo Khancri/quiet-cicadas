@@ -61,7 +61,7 @@ const sorted = Object.entries(data).sort((a, b) => new Date(a[1].date) - new Dat
             div.appendChild(createMessage(value, key));
         }
     }
-    div.scrollTop = div.scrollHeight;
+    
 }
 
 document.addEventListener('DOMContentLoaded', () => {
