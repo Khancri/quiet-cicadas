@@ -22,7 +22,7 @@ async function signUp() {
 
     
     
-    const done = await fetch(`/profile`, {method: 'POST', headers: {
+    const done = await fetch(`/signup`, {method: 'POST', headers: {
         'Content-Type': 'application/json' // Tell the server you are sending JSON
       },
       body: JSON.stringify({'username': username, 'password': password})});

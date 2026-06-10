@@ -41,8 +41,8 @@ def me():
         return jsonify({'ok': False})
     return jsonify({'username': session['username']})
 
-@app.route('/profile', methods=['POST'])
-def profile():
+@app.route('/signup', methods=['POST'])
+def signup():
     info = request.json
     print(info)
     username = info['username']
