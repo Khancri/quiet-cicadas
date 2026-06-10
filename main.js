@@ -1,7 +1,9 @@
 var username;
 var password;
+var pfp;
 document.getElementById('username-submit').onclick = async () => {
     username = document.getElementById('username-input').value;
+    pfp = document.getElementById('pfp-input').files;
     const exists = await (await fetch(`/profile/exists/${encodeURIComponent(username)}`)).json()
     console.log(exists.ok);
     if (exists.ok == true) {
@@ -31,8 +33,17 @@ async function logIn() {
     const json = await done.json()
     if (json.ok === true) {
         alert('yahoo!');
-        window.location.href = '/chat';
+    } else {
+        alert('false');
+        return;
     }
+    const formData = new FormData();
+    formData.append('pfp', pfp[0]);
+    const pfpUpload = await fetch('/pfp', {method: 'POST', body: formData});
+    if (pfpUpload.status == 204) {
+        alert('uploaded!');
+    }
+    window.location.href = '/chat';
 }
 
 async function signUp() {
@@ -42,6 +53,15 @@ async function signUp() {
       body: JSON.stringify({'username': username, 'password': password})});
     if (done.status == 204) {
         alert('registered!');
-        window.location.href = '/chat';
+    } else {
+        alert('?? sum broke sorry bro');
+        return;
     }
+    const formData = new FormData();
+    formData.append('pfp', pfp[0]);
+    const pfpUpload = await fetch('/pfp', {method: 'POST', body: formData});
+    if (pfpUpload.status == 204) {
+        alert('uploaded!');
+    }
+    window.location.href = '/chat';
 }

@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory, session
+from flask import Flask, jsonify, request, send_from_directory, session, send_file
 from datetime import datetime
 from flask_cors import CORS
 import flask_socketio
@@ -34,6 +34,20 @@ def main():
 @app.route('/file/<string:fileName>')
 def get_file(fileName):
     return send_from_directory('.', fileName)
+
+@app.route('/pfp/<string:username>')
+def get_pfp(username):
+    path = f'pfps/{username}'
+    if os.path.exists(path):
+        return send_file(path);
+    return '', 404
+
+@app.route('/pfp', methods=['POST'])
+def upload_pfp():
+    file = request.files['pfp']
+    os.makedirs('pfps', exist_ok=True)
+    file.save(f'pfps/{session['username']}')
+    return '', 204
 
 @app.route('/me')
 def me():
@@ -73,6 +87,13 @@ def exising_username(username: str):
         return jsonify({'ok': True})
     return jsonify({'ok': False})
     
+@app.route('/profile/view/<string:userName>')
+def view_profile(userName: str):
+    file = load('profiles.json')
+    if not file[userName]:
+        return '', 404
+    return jsonify(file[userName])
+
 @app.route('/message', methods=['POST'])
 def post_message():
     info = request.json

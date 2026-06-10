@@ -18,6 +18,8 @@ function createMessage(data, id) {
         const pfp = document.createElement('div');
         pfp.classList.add('avatar');
         message.appendChild(pfp);
+        pfp.style.backgroundImage = `url('/pfp/${data.user}')`;
+        pfp.style.backgroundSize = 'cover';
 
         const content = document.createElement('div');
         content.classList.add('content');
