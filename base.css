@@ -2,9 +2,14 @@
     --background-color: #1a1a1a;
     --secondary-background-color: #2f2f2f;
     --text-color: whitesmoke;
+    --border-color: whitesmoke;
+    --border-radius-s: .5rem;
+    --border-radius-m: .75rem;
+    --border-radius-xl: 2rem;
 }
 
 body {
     background: var(--background-color);
     color: var(--text-color);
+    font-family: monospace;
 }

@@ -7,7 +7,23 @@
     <link rel="stylesheet" href="file/base.css">
     <link rel="stylesheet" href="file/chats.css">
     <script src="file/chats.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+        const socket = io();
+        
+socket.on('new_message', (message) => {
+    renderMessages(message); // wrap in array so it works with your renderer
+    const messages = document.getElementById('messages');
+    messages.scrollTop = messages.scrollHeight;
+});
+    </script>
+    
 </head>
 <body>
+    <div class="header">
+        <p id="current-user-username">big booty tickler</p>
+    </div>
+    <div class="messages" id="messages"></div>
+    <input type="text" id="message-input">
 </body>
 </html>
