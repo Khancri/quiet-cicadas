@@ -12,6 +12,9 @@
     display: flex;
     gap: 10px;
 }
+.message:hover {
+    background-color: var(--secondary-background-color);
+}
 
 .avatar {
     width: 40px;
