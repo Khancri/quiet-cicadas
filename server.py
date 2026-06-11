@@ -31,9 +31,13 @@ def chat():
 def main():
     return send_from_directory('.', 'client.html')
 
-@app.route('/file/<string:fileName>')
-def get_file(fileName):
-    return send_from_directory('.', fileName)
+@app.route('/file/<path:name>')
+def get_file(name):
+    folders = name.split('/')
+    print(folders)
+    if len(folders) == 1:
+        return send_from_directory('.', folders[0])
+    return send_from_directory(f'./{'/'.join(folders[:-1])}', folders[-1])
 
 @app.route('/pfp/<string:username>')
 def get_pfp(username):

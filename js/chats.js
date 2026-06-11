@@ -1,7 +1,9 @@
+import {cryptoAPI} from './crypto.js'
+
 const daata = {
     'uuid': {
         date: '2026-06-09T11:11:40.152Z',
-        content: 'I like big butts and I cannot lie',
+        content: 'oo ee oo aa aa ting tang walla walla bang bang',
         user: 'khancri',
         reactions: {
             '🎉': ['khancri', 'l.', 'giitar_ruff'],

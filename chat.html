@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>chirp chirp</title>
-    <link rel="stylesheet" href="file/base.css">
-    <link rel="stylesheet" href="file/chats.css">
-    <script src="file/chats.js"></script>
+    <link rel="stylesheet" href="file/css/base.css">
+    <link rel="stylesheet" href="file/css/chats.css">
+    <script type="module" src="file/js/chats.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-<script>
+    <script>
         const socket = io();
-        
-socket.on('new_message', (message) => {
-    renderMessages(message); // wrap in array so it works with your renderer
-    const messages = document.getElementById('messages');
-    messages.scrollTop = messages.scrollHeight;
-});
+                
+        socket.on('new_message', (message) => {
+            renderMessages(message); // wrap in array so it works with your renderer
+            const messages = document.getElementById('messages');
+            messages.scrollTop = messages.scrollHeight;
+        });
     </script>
     
 </head>
@@ -23,7 +23,14 @@ socket.on('new_message', (message) => {
     <div class="header">
         <p id="current-user-username">big booty tickler</p>
     </div>
-    <div class="messages" id="messages"></div>
-    <input type="text" id="message-input">
+    <div class="main">
+        <div class="sidebar">
+            <button id="add-new-dm"> MESSAGE SOMEONE </button>
+        </div>
+        <div style="height: 100%; width: 60%; flex-grow: 1;">
+            <div class="messages" id="messages"></div>
+            <input type="text" id="message-input">
+        </div>
+    </div>
 </body>
 </html>
