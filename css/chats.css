@@ -95,3 +95,11 @@ body {
     margin: 1rem;
     min-width:fit-content;
 }
+button {
+    color: white;
+    background-color: var(--background-color);
+    border: solid 1px whitesmoke;
+    border-radius: var(--border-radius-s);
+    padding: .25rem;
+    margin: .25rem;
+}
