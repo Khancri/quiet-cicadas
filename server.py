@@ -2,7 +2,9 @@ from flask import Flask, jsonify, request, send_from_directory, session, send_fi
 from datetime import datetime
 from flask_cors import CORS
 import flask_socketio
+from flask_socketio import join_room, leave_room
 import uuid
+import emoji
 import bcrypt
 import json; import os;
 PROFILE_FILE = 'profiles.json'
@@ -29,6 +31,8 @@ def chat():
 
 @app.route('/')
 def main():
+    if session['username']:
+        return send_from_directory('.', 'chat.html')
     return send_from_directory('.', 'client.html')
 
 @app.route('/file/<path:name>')
@@ -85,6 +89,8 @@ def signup():
     session['username'] = username
     return '', 204
 
+
+
 @app.route('/profile/exists/<string:username>', methods=['GET'])
 def exising_username(username: str):
     if username in load('profiles.json').keys():
@@ -98,27 +104,50 @@ def view_profile(userName: str):
         return '', 404
     return jsonify(file[userName])
 
+@socketio.on("join")
+def on_join(data):
+    join_room(data["room"])
+
 @app.route('/message', methods=['POST'])
 def post_message():
     info = request.json
+    channel = info['channel']
     message_obj = {
         'user': session['username'],
         'content': info['message'],
         'date': datetime.now().isoformat()
-    }    
-    file = load('messages.json'); 
+    }
+    file = load(f'msg/{channel}.json'); 
+    if not 'messages' in file.keys():
+        file['messages'] = {}
     hash = str(uuid.uuid4())
-    file[hash] = message_obj
-    save('messages.json', file)
-    socketio.emit('new_message', {hash: message_obj})
+    file['messages'][hash] = message_obj
+    save(f'msg/{channel}.json', file)
+    socketio.emit('new_message', {hash: message_obj}, to=channel)
     return '', 204
 
-@app.route('/messages', methods=['GET'])
+
+@app.route('/messages', methods=['POST'])
 def get_messages():
-    data = load('messages.json')
+    channel = request.json['channel']
+    print(channel)
+    data = load(f'msg/{channel}.json')
+    if data == {}: return jsonify({})
+    data = data['messages']
     sorted_msgs = sorted(data.items(), key=lambda x: x[1]['date'], reverse=True)
     recent = dict(sorted_msgs[:10])
     return jsonify(recent)
 
+@socketio.on('react')
+def react(message): #{channel: 'channel', id: 'id'}
+    file = load(f'msg/{message['channel']}.json')
+    if not 'reactions' in file['messages'][message['id']].keys(): file['messages'][message['id']]['reactions'] = {}
+    if not emoji.is_emoji(message['reaction']): return '', 400
+    if not message['reaction'] in file['messages'][message['id']]['reactions'].keys(): file['messages'][message['id']]['reactions'][message['reaction']] = []
+    if session['username'] in file['messages'][message['id']]['reactions'][message['reaction']]: return '', 304
+    file['messages'][message['id']]['reactions'][message['reaction']].append(session['username'])
+    save(f'msg/{message['channel']}.json', file)
+    socketio.emit('message_reacted', {message['id']: file['messages'][message['id']]}, to=message['channel'])
+    
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=2994)
