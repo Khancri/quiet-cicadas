@@ -1,3 +1,6 @@
+:root {
+    --reacted-accent: #00d9ff;
+}
 body {
     display: block;
     height: 90vh;
@@ -54,7 +57,12 @@ body {
     flex-wrap: wrap;
 }
 .reaction .emoji {
-    font-size:1.1rem;
+    display: flex;
+}
+.reaction .emoji img {
+    width:1.1rem;
+    justify-self: center;
+    align-self: center;
 }
 .reaction .counter {
     align-self:center;
@@ -63,11 +71,18 @@ body {
     font-size:1.3rem;
 }
 .reaction {
+    display: flex;
+    align-items: center;
+    justify-items: center;
     font-size:1.2rem;
     border: solid 1px var(--border-color);
     border-radius: var(--border-radius-m);
     padding: .15rem .25rem;
     margin:  .2rem;
+}
+.reaction.self-reacted {
+    border-color: var(--reacted-accent);
+    color: var(--reacted-accent);
 }
 #message-input {
     width:100%;

@@ -31,7 +31,7 @@ def chat():
 
 @app.route('/')
 def main():
-    if session['username']:
+    if 'username' in session.keys():
         return send_from_directory('.', 'chat.html')
     return send_from_directory('.', 'client.html')
 
@@ -133,7 +133,7 @@ def get_messages():
     print(channel)
     data = load(f'msg/{channel}.json')
     if data == {}: return jsonify({})
-    data = data['messages']
+    data: dict = data['messages']
     sorted_msgs = sorted(data.items(), key=lambda x: x[1]['date'], reverse=True)
     recent = dict(sorted_msgs[:10])
     return jsonify(recent)
@@ -141,13 +141,27 @@ def get_messages():
 @socketio.on('react')
 def react(message): #{channel: 'channel', id: 'id'}
     file = load(f'msg/{message['channel']}.json')
-    if not 'reactions' in file['messages'][message['id']].keys(): file['messages'][message['id']]['reactions'] = {}
-    if not emoji.is_emoji(message['reaction']): return '', 400
-    if not message['reaction'] in file['messages'][message['id']]['reactions'].keys(): file['messages'][message['id']]['reactions'][message['reaction']] = []
+    
+    if not emoji.is_emoji(message['reaction']): 
+        return '', 400
+    if not 'reactions' in file['messages'][message['id']].keys(): 
+        file['messages'][message['id']]['reactions'] = {}
+    if not message['reaction'] in file['messages'][message['id']]['reactions'].keys(): 
+        file['messages'][message['id']]['reactions'][message['reaction']] = []
     if session['username'] in file['messages'][message['id']]['reactions'][message['reaction']]: return '', 304
     file['messages'][message['id']]['reactions'][message['reaction']].append(session['username'])
     save(f'msg/{message['channel']}.json', file)
     socketio.emit('message_reacted', {message['id']: file['messages'][message['id']]}, to=message['channel'])
     
+@socketio.on('unreact')
+def unreact(message):
+    
+    file = load(f'msg/{message['channel']}.json')
+    print(message['id'])
+    file['messages'][message['id']]['reactions'][message['reaction']].pop(file['messages'][message['id']]['reactions'][message['reaction']].index(session['username']))
+    if len(file['messages'][message['id']]['reactions'][message['reaction']]) == 0:
+        del file['messages'][message['id']]['reactions'][message['reaction']]
+    save(f'msg/{message['channel']}.json', file)
+    socketio.emit('message_reacted', {message['id']: file['messages'][message['id']]}, to=message['channel'])
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=2994)
