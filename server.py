@@ -81,8 +81,9 @@ def signup():
     password = info['password']
 
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-
-    profileObj = {'username': username, 'password': hashed.decode()}
+    key = info['publicKey']
+    print(key)
+    profileObj = {'username': username, 'password': hashed.decode(), 'key': key}
     file = load('profiles.json')
     file[username] = profileObj
     save('profiles.json' , file)
@@ -106,37 +107,26 @@ def view_profile(userName: str):
 
 @socketio.on("join")
 def on_join(data):
+    print(session['username'])
     join_room(data["room"])
 
-@app.route('/message', methods=['POST'])
-def post_message():
-    info = request.json
-    channel = info['channel']
+@socketio.on('message')
+def post_message(data):
+    print(data)
+    hash = str(uuid.uuid4())
     message_obj = {
         'user': session['username'],
-        'content': info['message'],
-        'date': datetime.now().isoformat()
+        'content': data['content'],  # will be arraybuffer
+        'iv': data['iv'],
+        'date': datetime.now().isoformat(),
+        'key': data['key']
     }
-    file = load(f'msg/{channel}.json'); 
-    if not 'messages' in file.keys():
-        file['messages'] = {}
-    hash = str(uuid.uuid4())
-    file['messages'][hash] = message_obj
-    save(f'msg/{channel}.json', file)
-    socketio.emit('new_message', {hash: message_obj}, to=channel)
-    return '', 204
+    socketio.emit('new_message', {hash: message_obj}, to=data['channel'])
 
 
 @app.route('/messages', methods=['POST'])
 def get_messages():
-    channel = request.json['channel']
-    print(channel)
-    data = load(f'msg/{channel}.json')
-    if data == {}: return jsonify({})
-    data: dict = data['messages']
-    sorted_msgs = sorted(data.items(), key=lambda x: x[1]['date'], reverse=True)
-    recent = dict(sorted_msgs[:10])
-    return jsonify(recent)
+    return '', 200
 
 @socketio.on('react')
 def react(message): #{channel: 'channel', id: 'id'}
@@ -153,6 +143,20 @@ def react(message): #{channel: 'channel', id: 'id'}
     save(f'msg/{message['channel']}.json', file)
     socketio.emit('message_reacted', {message['id']: file['messages'][message['id']]}, to=message['channel'])
     
+@socketio.on('keyupdate')
+def update_key_list(data):
+    file = load(f'msg/{data['channel']}.json')
+    file['metadata'] = data['key']
+    save(f'msg/{data['channel']}.json', file)
+
+@app.route('/key', methods=['GET'])
+def getKey():
+    channel = request.json['channel']
+    data = load(f'msg/{channel}.json')
+    if 'metadata' not in data:
+        return jsonify({'key': None})
+    return jsonify({'key': data['metadata']})
+
 @socketio.on('unreact')
 def unreact(message):
     
@@ -163,5 +167,7 @@ def unreact(message):
         del file['messages'][message['id']]['reactions'][message['reaction']]
     save(f'msg/{message['channel']}.json', file)
     socketio.emit('message_reacted', {message['id']: file['messages'][message['id']]}, to=message['channel'])
-if __name__ == '__main__':
+
+
+if __name__ == '__main__':  
     socketio.run(app, host='0.0.0.0', port=2994)
