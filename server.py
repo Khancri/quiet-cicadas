@@ -13,6 +13,9 @@ app = Flask(__name__, static_folder='.')
 socketio = flask_socketio.SocketIO(app, cors_allowed_origins="*")
 app.secret_key = 'R5m9SAXRxLwERafXLj5hqW4qru98NhWz'
 CORS(app)
+
+user_sockets = {}  # username → socket id
+
 #region JSON
 def load(file):
     if not os.path.exists(file):
@@ -108,6 +111,7 @@ def view_profile(userName: str):
 @socketio.on("join")
 def on_join(data):
     print(session['username'])
+    user_sockets[session['username']] = request.sid
     join_room(data["room"])
 
 @socketio.on('message')
@@ -168,6 +172,26 @@ def unreact(message):
     save(f'msg/{message['channel']}.json', file)
     socketio.emit('message_reacted', {message['id']: file['messages'][message['id']]}, to=message['channel'])
 
+@socketio.on('direct_message')
+def handle_direct_message(data):
+    to_username = data['to']
+    payload = data['payload']
+    to_sid = user_sockets.get(to_username)
+    if to_sid:
+        socketio.emit('direct_message', payload, to=to_sid)
+
+    
+@socketio.on('disconnect')
+def handle_disconnect():
+    # remove from user_sockets
+    global user_sockets
+    user_sockets = {k: v for k, v in user_sockets.items() if v != request.sid}
+
+@socketio.on('public_key_request')
+def key_request(data):
+    user = data['user']
+    print(load('profiles.json')[user]['key'])
+    return load('profiles.json')[user]['key']
 
 if __name__ == '__main__':  
-    socketio.run(app, host='0.0.0.0', port=2994)
+    socketio.run(app, host='0.0.0.0', port=2994, ssl_context='adhoc')

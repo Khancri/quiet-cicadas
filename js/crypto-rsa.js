@@ -14,16 +14,16 @@ async function createKey() {
 async function encryptMessage(message, key) {
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
 
-    return [await window.crypto.subtle.encrypt(
-        {'name': 'AES-GCM'},
+    return await window.crypto.subtle.encrypt(
+        {'name': 'RSA-OAEP', 'hash': 'SHA-256'},
         key,
         new TextEncoder().encode(message)
-    ), iv]
+    )
 }
 
 async function decryptMessage(messageBuf, key) {
     return await window.crypto.subtle.decrypt(
-        {name: 'AES-GCM'},
+        {'name': 'RSA-OAEP', 'hash': 'SHA-256'},
         key,
         messageBuf
     )

@@ -1,5 +1,5 @@
 const DB_NAME = 'cicadas';
-const DB_VERSION = 1;
+const DB_VERSION = 1.2;
 
 function openDB() {
     return new Promise((resolve, reject) => {
@@ -44,11 +44,31 @@ export async function saveKey(channel, key) {
 export async function savePrivateKey(key) {
     const db = await openDB();
     const exported = await crypto.subtle.exportKey('pkcs8', key);
+const exportedB64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
+    console.log(exported);
+    alert();
     return new Promise((resolve, reject) => {
         const tx = db.transaction('keys', 'readwrite');
-        tx.objectStore('keys').put({ channel: 'private', key: exported });
+        tx.objectStore('keys').put({ channel: 'private', key: exportedB64 });
         tx.oncomplete = resolve;
         tx.onerror = () => reject(tx.error);
+    });
+}
+
+export async function retrievePrivateKey() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('keys', 'readonly');
+        const req = tx.objectStore('keys').get('private');
+        req.onsuccess = async () => {
+            if (!req.result) return resolve(null);
+            const binary = atob(req.result.key);
+            const buffer = Uint8Array.from(binary, c => c.charCodeAt(0)).buffer;
+            const key = await crypto.subtle.importKey('pkcs8', buffer, {name: 'RSA-OAEP', hash:'SHA-256'}, false, ['decrypt'])
+            console.log(key);
+            resolve(key);
+        }
+        req.onerror = () => reject(req.error);
     });
 }
 

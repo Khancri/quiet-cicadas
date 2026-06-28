@@ -17,6 +17,7 @@ body {
 }
 
 .message {
+    margin: 7.5px 0;
     display: flex;
     gap: 10px;
     padding: .25rem;
@@ -40,7 +41,6 @@ body {
     padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
 }
 .message .messageContent {
     font-size: 1rem;
@@ -110,6 +110,8 @@ body {
     background: var(--secondary-background-color);
     margin: 1rem;
     min-width:fit-content;
+    display: flex;
+    flex-direction: column;
 }
 button {
     color: white;
@@ -130,4 +132,15 @@ button {
     background-color: color-mix(in srgb, lightgreen 25%);
     z-index: 50;
     padding: .5rem;
+}
+.message.grouped .avatar,
+.message.grouped .metadata {
+    display: none;
+}
+.message.grouped {
+    margin-left: 50px;
+    margin-top: 0; margin-bottom: 0;
+}
+.message.grouped-head {
+    margin-bottom: 0;   
 }
