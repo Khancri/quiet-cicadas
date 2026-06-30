@@ -183,6 +183,7 @@ def handle_direct_message(data):
     if to_sid:
         socketio.emit('direct_message', payload, to=to_sid)
 
+
 @socketio.on('dm')
 def direct_message(data):
     to = data['to']
@@ -196,6 +197,7 @@ def direct_message(data):
     }
     if to_sid:
         socketio.emit('dm', message_obj, to=to_sid)
+        socketio.emit('dm-s', message_obj, to=user_sockets.get(session['username']))
     
 @socketio.on('disconnect')
 def handle_disconnect():

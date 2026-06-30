@@ -114,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await encryptOpts['group'](messageInput.value.trim());
             }
             messageInput.value = ''; 
+            
         }
     });
     document.getElementById('add-new-dm').addEventListener('click', async () => {
@@ -159,6 +160,16 @@ socket.on('new_message', async (message) => {
 });
 
 socket.on('dm', async (message) => {
+    const obj = message[Object.keys(message)[0]];
+    const privKey = await retrievePrivateKey();
+    obj.content = new TextDecoder().decode(await RSA.receiveMessage(obj.content, privKey))
+    messagesLib.renderMessages(message, false, channel, socket); 
+    const messages = document.getElementById('messages');
+    await saveMessage(message, `@${channel.replace('@', '')}`);
+    
+    messages.scrollTop = messages.scrollHeight;
+});
+socket.on('dm-s', async (message) => {
     const obj = message[Object.keys(message)[0]];
     const privKey = await retrievePrivateKey();
     obj.content = new TextDecoder().decode(await RSA.receiveMessage(obj.content, privKey))
