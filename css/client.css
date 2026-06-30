@@ -1,85 +1,157 @@
-.slide {
-  position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: var(--secondary-background-color);
-    opacity: 1;
-    display:flex;
+body {
+    display: flex;
     flex-direction: column;
+    height: 100vh;
+    width: 100vw;
     align-items: center;
     justify-content: center;
 }
-.slide label {
-    font-size:2.5rem;
-    margin: 2rem 0rem;
-}
-.slide input[type=text] {
-    /* height:1rem;
-    width:6rem; */
-    font-size: 1.25rem;
-    width:min-content;
-    border-radius: .65rem;
-    border: none;
-    padding: .2rem;
-}
-.slide button {
-    background-color: var(--background-color);
-    margin:1rem;
-    color: var(--text-color);
-    border: none;
-    border-radius: 1rem;
-    padding: .75rem;
-}
-#portal {
-    display: block;
-    aspect-ratio: 1;
-    max-height:80vh;
-    position: relative;
+
+h1 { display: none; }
+
+#profile-setup {
     width: 100%;
     height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-button {
-    cursor:pointer;
+
+#portal {
+    position: relative;
+    width: 360px;
+    max-width: 90vw;
 }
+
+/* ── slide card ── */
+.slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    opacity: 1;
+}
+
+/* logo area at top of each slide */
+.slide::before {
+    content: '𓆗';
+    font-size: 26px;
+    color: var(--accent);
+    display: block;
+}
+
+.slide label {
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    text-align: center;
+    margin: 0;
+}
+
+/* text inputs */
+.slide input[type=text],
+.slide input[type=password] {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--cream);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+}
+.slide input[type=text]:focus,
+.slide input[type=password]:focus {
+    border-color: var(--accent);
+}
+.slide input[type=text]::placeholder,
+.slide input[type=password]::placeholder {
+    color: var(--text-muted);
+}
+
+/* file input — hidden, replaced by label trick if needed */
+.slide input[type=file] {
+    width: 100%;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg3);
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+.slide input[type=file]:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+}
+
+/* submit buttons */
+.slide button {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 9px;
+    cursor: pointer;
+    letter-spacing: .04em;
+    margin: 0;
+}
+.slide button:hover {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* step indicator dots */
+.step-dots {
+    display: flex;
+    gap: 6px;
+}
+.step-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+}
+.step-dot.active {
+    background: var(--accent);
+}
+
+/* slide animations — preserved from original */
 .dissolve-slide-in {
-  /* Set initial hidden and offset state */
-  display:flex !important;
-  position:relative;
-  opacity: 0;
-  transform: translateY(30px); 
-  
-  /* Link to the keyframe animation */
-  animation: dissolveSlideIn 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    display: flex !important;
+    position: relative;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: dissolveIn .7s cubic-bezier(.25, 1, .5, 1) forwards;
 }
 
-/* Define the intermediate steps */
-@keyframes dissolveSlideIn {
-  0% {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes dissolveIn {
+    to { opacity: 1; transform: translateY(0); }
 }
+
 .dissolve-slide-out {
-  animation: dissolveSlideOut 0.6s ease-in forwards;
+    animation: dissolveOut .5s ease-in forwards;
 }
 
-@keyframes dissolveSlideOut {
-  0% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(-50px); /* Slides slightly left while dissolving */
-    display:none;
-  }
+@keyframes dissolveOut {
+    to { opacity: 0; transform: translateX(-40px); }
 }
+
 #password-slide {
-    display:none;
+    display: none;
+}
+
+button {
+    cursor: pointer;
 }

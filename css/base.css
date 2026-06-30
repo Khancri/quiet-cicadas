@@ -1,15 +1,56 @@
 :root {
-    --background-color: #1a1a1a;
-    --secondary-background-color: #2f2f2f;
-    --text-color: whitesmoke;
-    --border-color: whitesmoke;
-    --border-radius-s: .5rem;
-    --border-radius-m: .75rem;
+    --bg:              #1a1a14;
+    --bg2:             #22221a;
+    --bg3:             #2a2a20;
+    --border:          #3a3a2a;
+    --text:            #d4cfb8;
+    --text-muted:      #7a7a60;
+    --accent:          #8aad6e;
+    --accent2:         #b5a96e;
+    --cream:           #e8e2cc;
+    --reacted-accent:  #b5a96e;
+
+    /* kept for compat with existing js that may reference these */
+    --background-color:           var(--bg);
+    --secondary-background-color: var(--bg2);
+    --text-color:                 var(--text);
+    --border-color:               var(--border);
+
+    --border-radius-s:  .5rem;
+    --border-radius-m:  .75rem;
     --border-radius-xl: 2rem;
 }
 
-body {
-    background: var(--background-color);
-    color: var(--text-color);
-    font-family: monospace;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', Courier, monospace;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* macos-style window topbar — add to any page's first element */
+.window-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+.window-bar .dots { display: flex; gap: 6px; }
+.window-bar .dot  { width: 10px; height: 10px; border-radius: 50%; }
+.window-bar .dot.r { background: #7a4040; }
+.window-bar .dot.y { background: #7a6a40; }
+.window-bar .dot.g { background: var(--accent); opacity: .7; }

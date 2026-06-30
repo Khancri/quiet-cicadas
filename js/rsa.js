@@ -9,7 +9,7 @@ export async function sendMessage(content, user, socket) {
         publicKey = await window.crypto.subtle.importKey('spki', keyBuffer, {name: 'RSA-OAEP', hash: 'SHA-256'}, false, ['encrypt'])
     
         const encrypted = await cryptoAPI.encryptMessage(content, publicKey)
-        socket.emit('direct_message', {to: user, payload: encrypted})
+        socket.emit('dm', {to: user, payload: encrypted})
     });
 }
 

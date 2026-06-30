@@ -3,27 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>quiet cicadas</title>
+    <title>cicadas</title>
     <link rel="stylesheet" href="file/css/base.css">
     <link rel="stylesheet" href="file/css/client.css">
+    <link rel="shortcut icon" href="file/svg/favicon.svg" type="image/x-icon">
 </head>
 <body>
-    <h1>Seems like you made it.</h1>
     <div id="profile-setup">
         <div id="portal">
+
             <div class="slide" id="username-slide">
-                <label for="username-input">Select a username.</label>
-                <input type="text" id="username-input">
+                <label for="username-input">pick a name</label>
+                <input type="text" id="username-input" placeholder="something to call you">
                 <input type="file" accept="image/png, image/jpeg" id="pfp-input" />
-                <button id="username-submit">thats me</button>
+                <button id="username-submit">that's me →</button>
+                <div class="step-dots">
+                    <div class="step-dot active"></div>
+                    <div class="step-dot"></div>
+                </div>
             </div>
+
             <div class="slide" id="password-slide">
-                <label for="password-input">What's your pass phrase?</label>
-                <input type="text" id="password-input">
-                <button id="password-submit">mhm!</button>
+                <label for="password-input">your passphrase</label>
+                <input type="text" id="password-input" placeholder="keep it secret">
+                <button id="password-submit">mhm →</button>
+                <div class="step-dots">
+                    <div class="step-dot"></div>
+                    <div class="step-dot active"></div>
+                </div>
             </div>
+
         </div>
     </div>
+    <script type="module" src="file/js/main.js"></script>
 </body>
-<script type="module" src="file/js/main.js"></script>
 </html>

@@ -30,6 +30,25 @@ export async function saveMessage(messageObj, channel) {
     });
 }
 
+export async function getMessages(channel) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('messages', 'readonly');
+        const index = tx.objectStore('messages').index('channel');
+        const req = index.getAll(channel);
+        req.onsuccess = () => {
+            const result = {};
+            for (const msg of req.result) {
+                const { id, channel, ...rest } = msg;
+                result[id] = rest;
+                console.log(result);
+            }
+            resolve(result);
+        };
+        req.onerror = () => reject(req.error);
+    });
+}
+
 export async function saveKey(channel, key) {
     const db = await openDB();
     const exported = await crypto.subtle.exportKey('jwk', key);
@@ -64,7 +83,7 @@ export async function retrievePrivateKey() {
             if (!req.result) return resolve(null);
             const binary = atob(req.result.key);
             const buffer = Uint8Array.from(binary, c => c.charCodeAt(0)).buffer;
-            const key = await crypto.subtle.importKey('pkcs8', buffer, {name: 'RSA-OAEP', hash:'SHA-256'}, false, ['decrypt'])
+            const key = await crypto.subtle.importKey('pkcs8', buffer, {name: 'RSA-OAEP', hash:'SHA-256'}, false, ['decrypt', 'unwrapKey'])
             console.log(key);
             resolve(key);
         }
@@ -86,24 +105,6 @@ export async function getKey(channel) {
     });
 }
 
-
-export async function getMessages(channel) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction('messages', 'readonly');
-        const index = tx.objectStore('messages').index('channel');
-        const req = index.getAll(channel);
-        req.onsuccess = () => {
-            const result = {};
-            for (const msg of req.result) {
-                const { id, channel, ...rest } = msg;
-                result[id] = rest;
-            }
-            resolve(result);
-        };
-        req.onerror = () => reject(req.error);
-    });
-}
 
 export async function clearChannel(channel) {
     const db = await openDB();

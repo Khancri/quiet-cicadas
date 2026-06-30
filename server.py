@@ -123,7 +123,6 @@ def post_message(data):
         'content': data['content'],  # will be arraybuffer
         'iv': data['iv'],
         'date': datetime.now().isoformat(),
-        'key': data['key']
     }
     socketio.emit('new_message', {hash: message_obj}, to=data['channel'])
 
@@ -150,7 +149,11 @@ def react(message): #{channel: 'channel', id: 'id'}
 @socketio.on('keyupdate')
 def update_key_list(data):
     file = load(f'msg/{data['channel']}.json')
-    file['metadata'] = data['key']
+    if not 'metadata' in file.keys():
+        file['metadata'] = {}
+    if not 'users' in file['metadata'].keys():
+        file['metadata']['users'] = [];
+    file['metadata']['users'].append(session['username'])
     save(f'msg/{data['channel']}.json', file)
 
 @app.route('/key', methods=['GET'])
@@ -163,7 +166,6 @@ def getKey():
 
 @socketio.on('unreact')
 def unreact(message):
-    
     file = load(f'msg/{message['channel']}.json')
     print(message['id'])
     file['messages'][message['id']]['reactions'][message['reaction']].pop(file['messages'][message['id']]['reactions'][message['reaction']].index(session['username']))
@@ -176,10 +178,24 @@ def unreact(message):
 def handle_direct_message(data):
     to_username = data['to']
     payload = data['payload']
+    # print(payload)
     to_sid = user_sockets.get(to_username)
     if to_sid:
         socketio.emit('direct_message', payload, to=to_sid)
 
+@socketio.on('dm')
+def direct_message(data):
+    to = data['to']
+    payload = data['payload']
+    to_sid = user_sockets.get(to)
+    
+    message_obj = {
+        'user': session['username'],
+        'content': payload,
+        'date': datetime.now().isoformat(),
+    }
+    if to_sid:
+        socketio.emit('dm', message_obj, to=to_sid)
     
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -190,8 +206,41 @@ def handle_disconnect():
 @socketio.on('public_key_request')
 def key_request(data):
     user = data['user']
-    print(load('profiles.json')[user]['key'])
     return load('profiles.json')[user]['key']
 
+@socketio.on('request_key')
+def request_key(data): # data: user, channel
+    print(data)
+    to_sid = user_sockets.get(data['user'])
+    if to_sid:
+        socketio.emit('key_exchange', {'channel': data['channel'], 'user': session['username']}, to=to_sid)
+
+@socketio.on('key_exchange_complete')
+def key_exchange_complete(data):
+    to_sid = user_sockets.get(data['user'])
+    if to_sid:
+        socketio.emit('key_exchange_complete', data['payload'], to=to_sid)
+
+@socketio.on('channel_users')
+def get_users_with_key(data):
+    file = load(f'msg/{data['channel']}.json')
+    print(file)
+    if file == {}:
+        return {'list': None}
+    users: list  = file['metadata']['users'] 
+    if users == None:
+        return {'list': None}
+    active = []
+    for user in users:
+        if user in user_sockets.keys():
+            active.append(user)
+            
+    return {'list': list(active)}
+            
+# @socketio.on('react')
+# def react(data):
+
+#     handle_direct_message({'to': data['user'], 'payload': ''})
+
 if __name__ == '__main__':  
-    socketio.run(app, host='0.0.0.0', port=2994, ssl_context='adhoc')
+    socketio.run(app, host  ='0.0.0.0', port=2994, ssl_context='adhoc')

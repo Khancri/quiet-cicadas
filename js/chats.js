@@ -19,6 +19,14 @@ const daata = {
             '🎉': ['khancri', 'l.', 'giitar_ruff'],
             '⛷': ['khancri']
         }
+    },
+    'uuid2': {
+        date: '2026-06-09T11:11:40.152Z',
+        content: '😼',
+        user: 'khancri',
+        reactions: {
+            '😼': ['khancri', 'meow meow ']
+        }
     }
 }
 
@@ -27,108 +35,71 @@ regetKey();
 var selectedMessageID = null;
 socket.emit('join', {room: channel});
 
-function createMessage(data, id) {
-    var message = document.createElement('div');
-        message.classList.add('message');
-
-        message.dataset.id = id;
-        
-        const pfp = document.createElement('div');
-        pfp.classList.add('avatar');
-        message.appendChild(pfp);
-        pfp.style.backgroundImage = `url('/pfp/${data.user}')`;
-        pfp.style.backgroundSize = 'cover';
-
-        const content = document.createElement('div');
-        content.classList.add('content');
-        message.appendChild(content);
-        message.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            selectedMessageID = id;
-            const menu = document.getElementById('context')
-            menu.style.display = 'flex';
-            const { pageX: x, pageY: y } = event;
-            menu.style.top = `${y}px`
-            menu.style.left = `${x}px`
-            const thing = document.addEventListener('click', () => {
-                menu.style.display = 'none';
-            }, {once: true})
-        })
-
-        const metadata = document.createElement('div');
-        metadata.classList.add('metadata');
-        content.appendChild(metadata);
-
-        const usernameEl = document.createElement('b');
-        usernameEl.classList.add('username'); usernameEl.innerText = data.user;
-        const dataEl = document.createElement('span');
-        const date = new Date(data.date);
-        dataEl.classList.add('date'); dataEl.innerText =  date.toLocaleString();
-        metadata.appendChild(usernameEl); metadata.appendChild(dataEl);
-
-        const messageContent = document.createElement('span');
-        messageContent.classList.add('messageContent'); messageContent.innerText = data.content;
-        content.appendChild(messageContent);
-
-        const reactionRow = document.createElement('div');
-        reactionRow.className = 'reaction-row';
-        content.appendChild(reactionRow);
-        if (data.reactions) {
-            for (const [emoji, array] of Object.entries(data.reactions)) {
-                messagesLib.react({[id]: data}, channel, emoji, socket, message)
-            }
-        }
-        return message;
-}
-
-function renderMessages(data, overwrite = false) {
-    console.log(data)
-    const sorted = Object.entries(data).sort((a, b) => new Date(a[1].date) - new Date(b[1].date));
-    const div = document.getElementById('messages')
-    for (let i = 0; i < sorted.length; i++) {
-        const [key, value] = sorted[i];
-        const prev = i > 0 ? sorted[i - 1][1] : null;
-        console.log(sorted[i - 1])
-        const message = document.querySelector(`[data-id="${key}"]`);
-        if (message === null) {
-            const el = createMessage(value, key);
-            const lastMessage = div.lastElementChild;
-            const lastUser = lastMessage?.querySelector('.username')?.innerText;
-
-            if (lastUser === value.user) {
-                el.classList.add('grouped');
-                lastMessage.classList.add('grouped-head')
-            }
-            div.appendChild(el);
-        } else if (overwrite === true) {
-            var reactionRow = message.querySelector('.reaction-row')
-            console.log(value)
-            for (const el of reactionRow.querySelectorAll('.reaction')) {
-                if (!value.reactions[el.dataset.emoji]) {
-                    el.remove();
-                }
-            }
-            for (const [emoji, array] of Object.entries(value.reactions)) {
-                if (reactionRow.querySelector(`.reaction[data-emoji=\"${emoji}\"]`)) {
-                    reactionRow.querySelector(`.reaction[data-emoji=\"${emoji}\"] > span.counter`).innerText = array.length;
-                } else {
-                    reactionRow = messagesLib.react({[key]: value}, channel, emoji, socket, message)
-                }
-            }
-        }
+async function fetchKey(channel) {
+    const list = await emitAsync(socket, 'channel_users', {channel})
+    if (list.list === null) {
+        key = await cryptoAPI.createKey();
+        saveKey(channel, key)
+        socket.emit('keyupdate', {channel});
+        keySearching = false;
+    } else {
+        if (list.list === []) return;
+        socket.emit('request_key', {user: list.list[0], channel: channel})
     }
+
 }
 
-
-async function regetKey() {
-    const key_ = await getKey(channel)
+var keySearching = false;
+async function regetKey() { 
+    if (channel.startsWith('@')) {
+        
+        const user = channel.replace('@', '')
+        console.log(`user: ${user}`)
+        var key_ = await emitAsync(socket, 'public_key_request', {user})
+        key_ = Uint8Array.from(atob(key_), c => c.charCodeAt(0));
+        key_ = await window.crypto.subtle.importKey('spki', key_, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['encrypt'])
+        console.log(key_)
+        key = key_
+    }
+    key_ = await getKey(channel)
     if (key_ === null) {
-        key = await cryptoAPI.createKey()
-        await saveKey(channel, key);
+        fetchKey(channel);
+        keySearching = true;
     } else {
         key = key_
     }
     
+}
+socket.on('key_exchange', async (data) => {
+    const requestedKey = await getKey(data['channel']);
+    const key = await emitAsync(socket,'public_key_request', {user: data['user']})
+    const keyBuffer = Uint8Array.from(atob(key), c => c.charCodeAt(0));
+    const publicKey = await crypto.subtle.importKey('spki', keyBuffer, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['wrapKey']);
+    const wrappedKey = await crypto.subtle.wrapKey('raw', requestedKey, publicKey, {name: 'RSA-OAEP'});
+    socket.emit('key_exchange_complete', {user: data['user'], payload: btoa(String.fromCharCode(...new Uint8Array(wrappedKey)))});
+});
+
+socket.on('key_exchange_complete', async (key_) => {
+    const keyBuffer = Uint8Array.from(atob(key_), c => c.charCodeAt(0)).buffer;
+    const privKey = await retrievePrivateKey();
+    key_ = await window.crypto.subtle.unwrapKey('raw', keyBuffer, privKey, {name: 'RSA-OAEP'}, {name: 'AES-GCM', length: 256}, true, ['encrypt', 'decrypt'])
+    keySearching = false;
+    saveKey(channel, key_);
+    key=key_;
+});
+
+const encryptOpts = {
+    'group':  async (content, channel) => {
+        const encrypted = await cryptoAPI.encryptMessage(content.encode())
+        socket.emit('message', {
+            content: content[0],
+            channel: channel,
+            iv: content[1]
+        });
+    },
+    'dm': async (content, user, socket) => {
+        RSA.sendMessage(content, user, socket)
+    },
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -136,36 +107,35 @@ document.addEventListener('DOMContentLoaded', () => {
     messageInput.addEventListener('keydown', async (e) => {
         if (e.key === 'Enter') {
             if (messageInput.value.trim() == '') return;
-            const content = await cryptoAPI.encryptMessage(messageInput.value.trim(), key)
-            console.log({
-                content: content[0],
-                channel: channel,
-                iv: content[1]
-            })
-            const a = await window.crypto.subtle.exportKey('jwk', key)
-            socket.emit('message', {
-                content: content[0],
-                channel: channel,
-                iv: content[1],
-                key: a
-            });
+            if (channel.startsWith('@')) {
+                const user = channel.replace('@', '');
+                await encryptOpts['dm'](messageInput.value.trim(), user, socket);
+            } else {
+                await encryptOpts['group'](messageInput.value.trim());
+            }
             messageInput.value = ''; 
         }
     });
     document.getElementById('add-new-dm').addEventListener('click', async () => {
         channel = prompt('what channel')
+        messagesLib.newChannel(channel, async () => {
+            document.getElementById('channel-name').innerText = `#${channel}`
+            await regetKey();
+            document.getElementById('messages').innerHTML = '';
+
+            getMessages1();
+            socket.emit("join", { room: channel });
+        });
         document.getElementById('channel-name').innerText = `#${channel}`
         await regetKey();
         document.getElementById('messages').innerHTML = '';
-        // getMessages1();
-        socket.emit("join", { room: channel });
 
-        const content = await crypto.subtle.exportKey('jwk', key);
-        socket.emit('keyupdate', {channel: channel, key: JSON.stringify(content)});
+        getMessages1();
+        socket.emit("join", { room: channel });
     })
 
     checkUser();
-    renderMessages(daata);
+    messagesLib.renderMessages(daata, false, channel, socket);
     // getMessages1();
 });
 async function checkUser() {
@@ -174,25 +144,37 @@ async function checkUser() {
     document.getElementById('current-user-username').innerText = username;
 }
 async function getMessages1() {
-    var data = await getMessages(channel);  // needs channel arg too
+    var data = await getMessages(channel);
     if (!data || Object.keys(data).length === 0) return;
-    renderMessages(data);
+    messagesLib.renderMessages(data, false, channel, socket);
 }
 
-
-                
 socket.on('new_message', async (message) => {
-    key = await window.crypto.subtle.importKey('jwk', message[Object.keys(message)[0]].key, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'])
     message[Object.keys(message)[0]].content = new TextDecoder().decode(await cryptoAPI.decryptMessage(message[Object.keys(message)[0]].content, message[Object.keys(message)[0]].iv, key))
-    renderMessages(message); // wrap in array so it works with your renderer
+    messagesLib.renderMessages(message, false, channel, socket); 
     const messages = document.getElementById('messages');
     await saveMessage(message, channel);
-
+    
     messages.scrollTop = messages.scrollHeight;
 });
 
+socket.on('dm', async (message) => {
+    const obj = message[Object.keys(message)[0]];
+    const privKey = await retrievePrivateKey();
+    obj.content = new TextDecoder().decode(await RSA.receiveMessage(obj.content, privKey))
+    messagesLib.renderMessages(message, false, channel, socket); 
+    const messages = document.getElementById('messages');
+    await saveMessage(message, `@${channel.replace('@', '')}`);
+    
+    messages.scrollTop = messages.scrollHeight;
+});
+
+async function gtk() {
+    return await retrievePrivateKey()
+}
+
 socket.on('message_reacted', (message) => {
-    renderMessages(message, true);
+    messagesLib.renderMessages(message, true, channel, socket);
 })
 
 function unreact(emoji, messageID, channel) {
@@ -212,6 +194,18 @@ socket.on('direct_message', async (data) => {
 
 document.getElementById('direct-message').onclick = async () => {
     const user = prompt('who do you want to dm?')
-    await RSA.sendMessage(prompt('why whatcha wanna say'), user, socket)
+    messagesLib.newDirectMessageChannel(user, async () => {
+            document.getElementById('channel-name').innerText = `@${user}`
+            channel = `@${user}`;
+            await regetKey();
+            document.getElementById('messages').innerHTML = '';
+
+            getMessages1();
+        });
 }
 
+function emitAsync(socket, event, data) {
+  return new Promise((resolve) => {
+    socket.emit(event, data, resolve)
+  })
+}

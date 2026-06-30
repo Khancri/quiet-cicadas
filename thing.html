@@ -1,0 +1,311 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #1a1a14;
+    --bg2: #22221a;
+    --bg3: #2a2a20;
+    --border: #3a3a2a;
+    --text: #d4cfb8;
+    --text-muted: #7a7a60;
+    --accent: #8aad6e;
+    --accent2: #b5a96e;
+    --cream: #e8e2cc;
+    --radius: 8px;
+    --font: 'Courier New', monospace;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); }
+
+  .shell {
+    display: flex;
+    flex-direction: column;
+    height: 520px;
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .topbar .dot-row { display: flex; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #7a4040; }
+  .dot.y { background: #7a6a40; }
+  .dot.g { background: var(--accent); opacity: 0.7; }
+  .topbar .username { color: var(--accent2); font-size: 11px; }
+
+  .body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    width: 170px;
+    min-width: 170px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  .sidebar-section {
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 8px 12px 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .dm-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 0 6px;
+  }
+  .dm-item:hover, .dm-item.active {
+    background: var(--bg3);
+    color: var(--text);
+  }
+  .dm-item.active { color: var(--cream); }
+  .avatar-sm {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .new-dm-btn {
+    margin: 10px 8px 0;
+    padding: 5px 8px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 11px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .new-dm-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--cream);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chat-header .channel-name { color: var(--accent2); }
+  .chat-header .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.8;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .msg-group { margin-bottom: 10px; }
+  .msg-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 3px;
+  }
+  .msg-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    color: var(--accent2);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .msg-body { flex: 1; }
+  .msg-row { display: flex; gap: 10px; align-items: flex-start; }
+  .msg-username { font-size: 12px; color: var(--accent); font-weight: bold; }
+  .msg-time { font-size: 10px; color: var(--text-muted); }
+  .msg-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+  .msg-row.grouped { margin-left: 40px; }
+  .msg-row.grouped .msg-text { padding-left: 0; font-size: 13px; }
+
+  .reaction-row { display: flex; gap: 4px; margin-top: 4px; margin-left: 40px; }
+  .reaction {
+    display: flex; align-items: center; gap: 4px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2px 7px;
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .reaction:hover { border-color: var(--accent); color: var(--text); }
+  .reaction.self { border-color: var(--accent2); color: var(--accent2); }
+
+  .input-area {
+    padding: 10px 14px 12px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .input-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    gap: 8px;
+  }
+  .input-wrap:focus-within { border-color: var(--accent); }
+  .input-wrap input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--cream);
+    font-family: var(--font);
+    font-size: 13px;
+  }
+  .input-wrap input::placeholder { color: var(--text-muted); }
+  .send-hint { font-size: 10px; color: var(--text-muted); }
+</style>
+
+<div class="shell">
+  <div class="topbar">
+    <div class="dot-row">
+      <div class="dot r"></div>
+      <div class="dot y"></div>
+      <div class="dot g"></div>
+    </div>
+    <span>cicadas</span>
+    <span class="username">~ moth</span>
+  </div>
+
+  <div class="body">
+    <div class="sidebar">
+      <div class="sidebar-section">messages</div>
+      <div class="dm-item active">
+        <div class="avatar-sm">w</div>
+        <span>wren</span>
+      </div>
+      <div class="dm-item">
+        <div class="avatar-sm">f</div>
+        <span>fern</span>
+      </div>
+      <div class="dm-item">
+        <div class="avatar-sm">s</div>
+        <span>sundew</span>
+      </div>
+      <div class="new-dm-btn">+ new message</div>
+    </div>
+
+    <div class="chat-area">
+      <div class="chat-header">
+        <div class="status-dot"></div>
+        <span class="channel-name">wren</span>
+        <span style="color:var(--text-muted); font-size:11px;">end-to-end encrypted</span>
+      </div>
+
+      <div class="messages">
+        <div class="msg-group">
+          <div class="msg-row">
+            <div class="msg-avatar">w</div>
+            <div class="msg-body">
+              <div class="msg-meta">
+                <span class="msg-username">wren</span>
+                <span class="msg-time">11:42</span>
+              </div>
+              <div class="msg-text">hey, you there?</div>
+            </div>
+          </div>
+          <div class="msg-row grouped">
+            <div class="msg-text">it's raining here. hard.</div>
+          </div>
+          <div class="msg-row grouped">
+            <div class="msg-text">feels like autumn already</div>
+          </div>
+          <div class="reaction-row">
+            <div class="reaction self">🍂 2</div>
+            <div class="reaction">🌧 1</div>
+          </div>
+        </div>
+
+        <div class="msg-group">
+          <div class="msg-row">
+            <div class="msg-avatar" style="color:var(--accent2)">m</div>
+            <div class="msg-body">
+              <div class="msg-meta">
+                <span class="msg-username" style="color:var(--accent2)">moth</span>
+                <span class="msg-time">11:45</span>
+              </div>
+              <div class="msg-text">yeah i'm here</div>
+            </div>
+          </div>
+          <div class="msg-row grouped">
+            <div class="msg-text">same here actually. leaves are going</div>
+          </div>
+        </div>
+
+        <div class="msg-group">
+          <div class="msg-row">
+            <div class="msg-avatar">w</div>
+            <div class="msg-body">
+              <div class="msg-meta">
+                <span class="msg-username">wren</span>
+                <span class="msg-time">11:46</span>
+              </div>
+              <div class="msg-text">good. glad you're still around 🌿</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <div class="input-wrap">
+          <input type="text" placeholder="say something...">
+          <span class="send-hint">↵</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

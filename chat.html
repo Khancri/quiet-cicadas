@@ -3,32 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>chirp chirp</title>
+    <title>cicadas</title>
     <link rel="stylesheet" href="file/css/base.css">
     <link rel="stylesheet" href="file/css/chats.css">
     <script type="module" src="file/js/chats.js"></script>
-    
-    
-    
+    <link rel="shortcut icon" href="file/svg/favicon.svg" type="image/x-icon">
 </head>
 <body>
     <div id="context">
         <button class="emoji-context">react</button>
     </div>
+
     <div class="header">
-        <p id="current-user-username">big booty tickler</p>
+        <div class="dots">
+            <div class="dot r"></div>
+            <div class="dot y"></div>
+            <div class="dot g"></div>
+        </div>
+        <span>cicadas</span>
+        <p id="current-user-username"></p>
     </div>
+
     <div class="main">
         <div class="sidebar">
-            <button id="add-new-dm"> MESSAGE SOMEONE </button>
-            <button id="direct-message"> DIRECT MESSAGE SOMEONE </button>
+            <span class="sidebar-label">messages</span>
+            <button id="add-new-dm">+ new message</button>
+            <button id="direct-message">+ direct message</button>
         </div>
-        <div style="height: 100%; width: 60%; flex-grow: 1;">
+        <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
             <div id="channel-header">
-                <h1 id="channel-name">#boom chakalaka</h1>
+                <h1 id="channel-name"></h1><span style="color:var(--text-muted); font-size:11px;">end-to-end encrypted</span>
             </div>
             <div class="messages" id="messages"></div>
-            <input type="text" id="message-input">
+            <input type="text" id="message-input" placeholder="say something...">
         </div>
     </div>
 </body>
