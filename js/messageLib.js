@@ -114,22 +114,22 @@ function renderMessages(data, overwrite = false, channel, socket) {
             }
             div.appendChild(el);
         } 
-        // else if (overwrite === true) {
-        //     var reactionRow = message.querySelector('.reaction-row')
-        //     console.log(value)
-        //     for (const el of reactionRow.querySelectorAll('.reaction')) {
-        //         if (!value.reactions[el.dataset.emoji]) {
-        //             el.remove();
-        //         }
-        //     }
-        //     for (const [emoji, array] of Object.entries(value.reactions)) {
-        //         if (reactionRow.querySelector(`.reaction[data-emoji=\"${emoji}\"]`)) {
-        //             reactionRow.querySelector(`.reaction[data-emoji=\"${emoji}\"] > span.counter`).innerText = array.length;
-        //         } else {
-        //             reactionRow = react({[key]: value}, channel, emoji, socket, message)
-        //         }
-        //     }
-        // }
+        else if (overwrite === true) {
+            var reactionRow = message.querySelector('.reaction-row')
+            console.log(value)
+            for (const el of reactionRow.querySelectorAll('.reaction')) {
+                if (!value.reactions[el.dataset.emoji]) {
+                    el.remove();
+                }
+            }
+            for (const [emoji, array] of Object.entries(value.reactions)) {
+                if (reactionRow.querySelector(`.reaction[data-emoji=\"${emoji}\"]`)) {
+                    reactionRow.querySelector(`.reaction[data-emoji=\"${emoji}\"] > span.counter`).innerText = array.length;
+                } else {
+                    reactionRow = react({[key]: value}, channel, emoji, socket, message)
+                }
+            }
+        }
     }
 }
 

@@ -30,10 +30,23 @@ const daata = {
     }
 }
 
-var channel = 'boom chakalaka';
-regetKey();
+var channel = 'general'
+messagesLib.newChannel(channel, async () => {
+    document.getElementById('channel-name').innerText = `#${channel}`
+    await regetKey();
+    document.getElementById('messages').innerHTML = '';
+
+    getMessages1();
+    socket.emit("join", { room: channel });
+});
+document.getElementById('channel-name').innerText = `#${channel}`
+await regetKey();
+document.getElementById('messages').innerHTML = '';
+
+getMessages1();
+socket.emit("join", { room: channel });regetKey();
+messagesLib.renderMessages(daata, false, channel, socket);
 var selectedMessageID = null;
-socket.emit('join', {room: channel});
 
 async function fetchKey(channel) {
     const list = await emitAsync(socket, 'channel_users', {channel})
@@ -70,13 +83,14 @@ async function regetKey() {
     }
     
 }
-socket.on('key_exchange', async (data) => {
+socket.on('key_exchange', async (data, callback) => {
     const requestedKey = await getKey(data['channel']);
     const key = await emitAsync(socket,'public_key_request', {user: data['user']})
     const keyBuffer = Uint8Array.from(atob(key), c => c.charCodeAt(0));
     const publicKey = await crypto.subtle.importKey('spki', keyBuffer, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['wrapKey']);
     const wrappedKey = await crypto.subtle.wrapKey('raw', requestedKey, publicKey, {name: 'RSA-OAEP'});
-    socket.emit('key_exchange_complete', {user: data['user'], payload: btoa(String.fromCharCode(...new Uint8Array(wrappedKey)))});
+    console.log(callback)
+    socket.emit('key_request_complete', {user: data['user'], payload: btoa(String.fromCharCode(...new Uint8Array(wrappedKey)))});
 });
 
 socket.on('key_exchange_complete', async (key_) => {
@@ -90,11 +104,11 @@ socket.on('key_exchange_complete', async (key_) => {
 
 const encryptOpts = {
     'group':  async (content, channel) => {
-        const encrypted = await cryptoAPI.encryptMessage(content.encode())
+        const encrypted = await cryptoAPI.encryptMessage(content, key)
         socket.emit('message', {
-            content: content[0],
+            content: encrypted[0],
             channel: channel,
-            iv: content[1]
+            iv: encrypted[1],
         });
     },
     'dm': async (content, user, socket) => {
@@ -102,43 +116,43 @@ const encryptOpts = {
     },
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const messageInput = document.getElementById('message-input');
-    messageInput.addEventListener('keydown', async (e) => {
-        if (e.key === 'Enter') {
-            if (messageInput.value.trim() == '') return;
-            if (channel.startsWith('@')) {
-                const user = channel.replace('@', '');
-                await encryptOpts['dm'](messageInput.value.trim(), user, socket);
-            } else {
-                await encryptOpts['group'](messageInput.value.trim());
-            }
-            messageInput.value = ''; 
-            
+console.log('yeah he does')
+const messageInput = document.getElementById('message-input');
+messageInput.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+        if (messageInput.value.trim() == '') return;
+        if (channel.startsWith('@')) {
+            const user = channel.replace('@', '');
+            await encryptOpts['dm'](messageInput.value.trim(), user, socket);
+        } else {
+            await encryptOpts['group'](messageInput.value.trim(), channel);
         }
-    });
-    document.getElementById('add-new-dm').addEventListener('click', async () => {
-        channel = prompt('what channel')
-        messagesLib.newChannel(channel, async () => {
-            document.getElementById('channel-name').innerText = `#${channel}`
-            await regetKey();
-            document.getElementById('messages').innerHTML = '';
-
-            getMessages1();
-            socket.emit("join", { room: channel });
-        });
+        messageInput.value = ''; 
+        console.log('no no ')
+    }
+});
+document.getElementById('add-new-dm').addEventListener('click', async () => {
+    channel = prompt('what channel')
+    messagesLib.newChannel(channel, async () => {
         document.getElementById('channel-name').innerText = `#${channel}`
         await regetKey();
         document.getElementById('messages').innerHTML = '';
 
         getMessages1();
         socket.emit("join", { room: channel });
-    })
+    });
+    document.getElementById('channel-name').innerText = `#${channel}`
+    await regetKey();
+    document.getElementById('messages').innerHTML = '';
+
+    getMessages1();
+    socket.emit("join", { room: channel });
+    messagesLib.renderMessages(daata, false, channel, socket);
+    console.log('hi?');
+})
 
     checkUser();
-    messagesLib.renderMessages(daata, false, channel, socket);
     // getMessages1();
-});
 async function checkUser() {
     const username = (await (await fetch('/me')).json()).username
     updateInfo(username);
@@ -159,6 +173,9 @@ socket.on('new_message', async (message) => {
     messages.scrollTop = messages.scrollHeight;
 });
 
+
+
+
 socket.on('dm', async (message) => {
     const obj = message[Object.keys(message)[0]];
     const privKey = await retrievePrivateKey();
@@ -170,13 +187,12 @@ socket.on('dm', async (message) => {
     messages.scrollTop = messages.scrollHeight;
 });
 socket.on('dm-s', async (message) => {
-    const obj = message[Object.keys(message)[0]];
+    console.log(message.content)
     const privKey = await retrievePrivateKey();
-    obj.content = new TextDecoder().decode(await RSA.receiveMessage(obj.content, privKey))
+    message.content = new TextDecoder().decode(await RSA.receiveMessage(message.content, privKey))
     messagesLib.renderMessages(message, false, channel, socket); 
     const messages = document.getElementById('messages');
-    await saveMessage(message, `@${channel.replace('@', '')}`);
-    
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
     messages.scrollTop = messages.scrollHeight;
 });
 

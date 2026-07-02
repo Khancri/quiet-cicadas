@@ -189,16 +189,17 @@ def direct_message(data):
     to = data['to']
     payload = data['payload']
     to_sid = user_sockets.get(to)
-    
+    hash = str(uuid.uuid4())
+    date = datetime.now().isoformat()
     message_obj = {
         'user': session['username'],
         'content': payload,
-        'date': datetime.now().isoformat(),
+        'date': date,
     }
     if to_sid:
-        socketio.emit('dm', message_obj, to=to_sid)
-        socketio.emit('dm-s', message_obj, to=user_sockets.get(session['username']))
-    
+        socketio.emit('dm', {hash: message_obj}, to=to_sid)
+        print('hi' + hash)
+        return {'hash': hash, 'date': date}
 @socketio.on('disconnect')
 def handle_disconnect():
     # remove from user_sockets
@@ -217,8 +218,8 @@ def request_key(data): # data: user, channel
     if to_sid:
         socketio.emit('key_exchange', {'channel': data['channel'], 'user': session['username']}, to=to_sid)
 
-@socketio.on('key_exchange_complete')
-def key_exchange_complete(data):
+@socketio.on('request_key_complete')
+def request_key_complete(data):
     to_sid = user_sockets.get(data['user'])
     if to_sid:
         socketio.emit('key_exchange_complete', data['payload'], to=to_sid)
@@ -245,4 +246,4 @@ def get_users_with_key(data):
 #     handle_direct_message({'to': data['user'], 'payload': ''})
 
 if __name__ == '__main__':  
-    socketio.run(app, host  ='0.0.0.0', port=2994, ssl_context='adhoc')
+    socketio.run(app, host  ='0.0.0.0', port=2994, ssl_context=('cert.pem', 'key.pem'))
