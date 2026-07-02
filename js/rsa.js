@@ -1,5 +1,6 @@
 import * as cryptoAPI from './crypto-rsa.js'
 import { renderMessages } from './messageLib.js';
+import { saveMessage } from './db.js';
 import { getUsername } from './userInfo.js';
 export async function sendMessage(content, user, socket) {
     var publicKey = null;
@@ -13,6 +14,8 @@ export async function sendMessage(content, user, socket) {
         socket.emit('dm', {to: user, payload: encrypted}, async (data) => {
             console.log(data)
             renderMessages({[data.uuid]: {'date': data.date, content: content, user: getUsername()}}, false, `@${user}`, socket)
+            saveMessage({[data.uuid]: {'date': data.date, content: content, user: getUsername()}}, `@${user}`)
+
         })
     });
 }

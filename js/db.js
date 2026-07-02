@@ -40,8 +40,8 @@ export async function getMessages(channel) {
             const result = {};
             for (const msg of req.result) {
                 const { id, channel, ...rest } = msg;
-                result[id] = rest;
-                console.log(result);
+                result[id] = rest[id];
+                console.log(rest);
             }
             resolve(result);
         };

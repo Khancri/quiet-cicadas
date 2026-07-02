@@ -136,6 +136,7 @@ document.getElementById('add-new-dm').addEventListener('click', async () => {
     messagesLib.newChannel(channel, async () => {
         document.getElementById('channel-name').innerText = `#${channel}`
         await regetKey();
+
         document.getElementById('messages').innerHTML = '';
 
         getMessages1();
@@ -150,6 +151,26 @@ document.getElementById('add-new-dm').addEventListener('click', async () => {
     messagesLib.renderMessages(daata, false, channel, socket);
     console.log('hi?');
 })
+
+document.getElementById('direct-message').onclick = async () => {
+    const user = prompt('who do you want to dm?')
+    messagesLib.newDirectMessageChannel(user, async () => {
+            messagesLib.undoAllActiveChannels();
+            document.querySelector(`#user-dm-${user}`).classList.add('active')
+            document.getElementById('channel-name').innerText = `@${user}`
+            channel = `@${user}`;
+            await regetKey();
+            document.getElementById('messages').innerHTML = '';
+
+            getMessages1();
+        });
+    document.getElementById('channel-name').innerText = `@${user}`
+    channel = `@${user}`;
+    await regetKey();
+    document.getElementById('messages').innerHTML = '';
+    
+    getMessages1();
+}
 
     checkUser();
     // getMessages1();
@@ -180,7 +201,9 @@ socket.on('dm', async (message) => {
     const obj = message[Object.keys(message)[0]];
     const privKey = await retrievePrivateKey();
     obj.content = new TextDecoder().decode(await RSA.receiveMessage(obj.content, privKey))
-    messagesLib.renderMessages(message, false, channel, socket); 
+    if (channel === `@${obj.user}`){
+        messagesLib.renderMessages(message, false, channel, socket); 
+    }
     const messages = document.getElementById('messages');
     await saveMessage(message, `@${channel.replace('@', '')}`);
     
@@ -218,18 +241,6 @@ socket.on('direct_message', async (data) => {
     const decrypted = await RSA.receiveMessage(data, privKey);
     alert(new TextDecoder().decode(decrypted));
 })
-
-document.getElementById('direct-message').onclick = async () => {
-    const user = prompt('who do you want to dm?')
-    messagesLib.newDirectMessageChannel(user, async () => {
-            document.getElementById('channel-name').innerText = `@${user}`
-            channel = `@${user}`;
-            await regetKey();
-            document.getElementById('messages').innerHTML = '';
-
-            getMessages1();
-        });
-}
 
 function emitAsync(socket, event, data) {
   return new Promise((resolve) => {

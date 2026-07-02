@@ -4,7 +4,6 @@ import { twemoji } from "./twemoji.js";
 function createMessage(data, id, channel, socket) {
     var message = document.createElement('div');
         message.classList.add('message');
-
         const stripped = data['content'].replace(/\s/g, '');
   
         const isEmoji = /^\p{Emoji}+$/u.test(stripped);
@@ -137,10 +136,12 @@ function renderMessages(data, overwrite = false, channel, socket) {
 function newChannel(channelName, callback) {
     const channelEl = document.createElement('div');
     channelEl.className = 'dm-item';
+    undoAllActiveChannels();
     channelEl.classList.add('active');
+    channelEl.id = `channel-${channelName}`
     const channelNameEl = document.createElement('span');
     channelNameEl.textContent = channelName;
-    channelNameEl.onclick = callback;
+    channelEl.onclick = callback;
     const pfp = document.createElement('div')
     pfp.classList.add('avatar-sm');
     pfp.innerText = '#'
@@ -153,10 +154,12 @@ function newChannel(channelName, callback) {
 function newDirectMessageChannel(user, callback) {
     const channelEl = document.createElement('div');
     channelEl.className = 'dm-item';
+    channelEl.id = `user-dm-${user}`
+    undoAllActiveChannels();
     channelEl.classList.add('active');
     const channelNameEl = document.createElement('span');
     channelNameEl.textContent = user;
-    channelNameEl.onclick = callback;
+    channelEl.onclick = callback;
     const pfp = document.createElement('div')
     pfp.classList.add('avatar-sm');
     const pfpImg = document.createElement('img');
@@ -168,4 +171,10 @@ function newDirectMessageChannel(user, callback) {
     document.querySelector('.sidebar').appendChild(channelEl);
 }
 
-export {react, renderMessages, newChannel, newDirectMessageChannel}
+function undoAllActiveChannels() {
+    for (const channel of document.querySelectorAll('.sidebar .dm-item.active')) {
+        channel.classList.remove('active');
+    }
+}
+
+export {react, renderMessages, newChannel, newDirectMessageChannel, undoAllActiveChannels}
