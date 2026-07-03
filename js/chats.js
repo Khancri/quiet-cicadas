@@ -31,6 +31,7 @@ const daata = {
 }
 
 var channel = 'general'
+renderChannelHistory();
 messagesLib.newChannel(channel, async () => {
     changeMessageBox('general')
 });
@@ -126,6 +127,24 @@ messageInput.addEventListener('keydown', async (e) => {
         // console.log('no no ')
     }
 });
+
+function renderChannelHistory(dmCallback, callback) {
+    const history = messagesLib.getChannelHistory();
+    if (history === null) return
+    for (const [channel, status] of Object.entries(history)) {
+        if (status === false) continue;
+        if (channel.startsWith('@')) {
+            messagesLib.newDirectMessageChannel(channel.replace('@', ''), async () => {
+                await changeMessageBox(channel)
+            })
+        } else {
+            messagesLib.newChannel(channel, async () => {
+                await changeMessageBox(channel)
+            })
+        }
+    }
+}
+
 async function changeMessageBox(channelName) {
     channel = channelName;
     messagesLib.undoAllActiveChannels();

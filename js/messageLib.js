@@ -134,6 +134,11 @@ function renderMessages(data, overwrite = false, channel, socket) {
 
 
 function newChannel(channelName, callback) {
+    if (document.querySelector(`[data-channel-data="${encodeURIComponent(channelName)}"]`) !== null) {
+        undoAllActiveChannels();
+        document.querySelector(`[data-channel-data="${encodeURIComponent(channelName)}"]`).classList.add('active');
+        return;
+    };
     const channelEl = document.createElement('div');
     channelEl.className = 'dm-item';
     undoAllActiveChannels();
@@ -148,10 +153,16 @@ function newChannel(channelName, callback) {
     channelEl.appendChild(pfp);
     channelEl.appendChild(channelNameEl);
     console.log(channelEl);
-    document.querySelector('.sidebar').appendChild(channelEl);
+    document.querySelector('.channelList').appendChild(channelEl);
+    addChannelToHistory(channelName)
 }
 
 function newDirectMessageChannel(user, callback) {
+    if (document.querySelector(`[data-user-data="${encodeURIComponent(`@${user}`)}"]`) !==null) {
+        undoAllActiveChannels();
+        document.querySelector(`[data-user-data="${encodeURIComponent(user)}"]`).classList.add('active');
+        return;
+    };
     const channelEl = document.createElement('div');
     channelEl.className = 'dm-item';
     channelEl.dataset.userData = encodeURIComponent('@'+ user)
@@ -168,7 +179,8 @@ function newDirectMessageChannel(user, callback) {
     channelEl.appendChild(pfp);
     channelEl.appendChild(channelNameEl);
     console.log(channelEl);
-    document.querySelector('.sidebar').appendChild(channelEl);
+    document.querySelector('.channelList').appendChild(channelEl);
+    addChannelToHistory(`@${user}`);
 }
 
 function undoAllActiveChannels() {
@@ -177,4 +189,28 @@ function undoAllActiveChannels() {
     }
 }
 
-export {react, renderMessages, newChannel, newDirectMessageChannel, undoAllActiveChannels}
+
+function addChannelToHistory(channel) {
+    var orig = JSON.parse(localStorage.getItem('open-channels'));
+    if (orig == null) {
+        orig = {};
+    }
+    orig[channel] = true;
+    localStorage.setItem('open-channels', JSON.stringify(orig));
+}
+
+function removeChannelFromHistory(channel) {
+    var orig = JSON.parse(localStorage.getItem('open-channels'));
+    if (orig === null) return;
+    delete orig[channel];
+    localStorage.setItem('open-channels', JSON.stringify(orig));
+}
+
+function getChannelHistory() {
+    return JSON.parse(localStorage.getItem('open-channels'));
+}
+export {
+    react, renderMessages, newChannel, 
+    newDirectMessageChannel, undoAllActiveChannels, 
+    getChannelHistory, removeChannelFromHistory, addChannelToHistory
+}
