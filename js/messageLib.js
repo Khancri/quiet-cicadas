@@ -138,7 +138,7 @@ function newChannel(channelName, callback) {
     channelEl.className = 'dm-item';
     undoAllActiveChannels();
     channelEl.classList.add('active');
-    channelEl.id = `channel-${channelName}`
+    channelEl.dataset.channelData = `${encodeURIComponent(channelName)}`
     const channelNameEl = document.createElement('span');
     channelNameEl.textContent = channelName;
     channelEl.onclick = callback;
@@ -154,7 +154,7 @@ function newChannel(channelName, callback) {
 function newDirectMessageChannel(user, callback) {
     const channelEl = document.createElement('div');
     channelEl.className = 'dm-item';
-    channelEl.id = `user-dm-${user}`
+    channelEl.dataset.userData = encodeURIComponent('@'+ user)
     undoAllActiveChannels();
     channelEl.classList.add('active');
     const channelNameEl = document.createElement('span');

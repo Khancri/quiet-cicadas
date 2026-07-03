@@ -32,12 +32,7 @@ const daata = {
 
 var channel = 'general'
 messagesLib.newChannel(channel, async () => {
-    document.getElementById('channel-name').innerText = `#${channel}`
-    await regetKey();
-    document.getElementById('messages').innerHTML = '';
-
-    getMessages1();
-    socket.emit("join", { room: channel });
+    changeMessageBox('general')
 });
 document.getElementById('channel-name').innerText = `#${channel}`
 await regetKey();
@@ -128,19 +123,33 @@ messageInput.addEventListener('keydown', async (e) => {
             await encryptOpts['group'](messageInput.value.trim(), channel);
         }
         messageInput.value = ''; 
-        console.log('no no ')
+        // console.log('no no ')
     }
 });
+async function changeMessageBox(channelName) {
+    channel = channelName;
+    messagesLib.undoAllActiveChannels();
+    if (channel.startsWith('@')) {
+        console.log(`.sidebar .dm-item[data-user-data="${encodeURIComponent(`${channel}`)}"]`)
+        document.querySelector(`.sidebar .dm-item[data-user-data="${encodeURIComponent(channel)}"]`).classList.add('active')
+        document.getElementById('channel-name').innerText = `${channel}`
+    } else {
+        console.log(`.sidebar .dm-item[data-channel-name="${encodeURIComponent(channel)}"]`)
+        document.querySelector(`.sidebar .dm-item[data-channel-data="${encodeURIComponent(channel)}"]`).classList.add('active')
+        document.getElementById('channel-name').innerText = `#${channel}`
+    }
+    await regetKey();
+
+    document.getElementById('messages').innerHTML = '';
+
+    getMessages1();
+    socket.emit("join", { room: channel });
+}
 document.getElementById('add-new-dm').addEventListener('click', async () => {
     channel = prompt('what channel')
-    messagesLib.newChannel(channel, async () => {
-        document.getElementById('channel-name').innerText = `#${channel}`
-        await regetKey();
-
-        document.getElementById('messages').innerHTML = '';
-
-        getMessages1();
-        socket.emit("join", { room: channel });
+    const channelname = channel;
+    messagesLib.newChannel(channelname, async () => {
+        changeMessageBox(channelname);
     });
     document.getElementById('channel-name').innerText = `#${channel}`
     await regetKey();
@@ -155,14 +164,7 @@ document.getElementById('add-new-dm').addEventListener('click', async () => {
 document.getElementById('direct-message').onclick = async () => {
     const user = prompt('who do you want to dm?')
     messagesLib.newDirectMessageChannel(user, async () => {
-            messagesLib.undoAllActiveChannels();
-            document.querySelector(`#user-dm-${user}`).classList.add('active')
-            document.getElementById('channel-name').innerText = `@${user}`
-            channel = `@${user}`;
-            await regetKey();
-            document.getElementById('messages').innerHTML = '';
-
-            getMessages1();
+            await changeMessageBox(`@${user}`);
         });
     document.getElementById('channel-name').innerText = `@${user}`
     channel = `@${user}`;
