@@ -7,16 +7,25 @@
     <link rel="stylesheet" href="file/css/base.css">
     <link rel="stylesheet" href="file/css/client.css">
     <link rel="shortcut icon" href="file/svg/favicon.svg" type="image/x-icon">
+    <link rel="stylesheet" href="file/css/cropper.css">
 </head>
 <body>
     <div id="profile-setup">
         <div id="portal">
 
             <div class="slide" id="username-slide">
-                <label for="username-input">pick a name</label>
-                <input type="text" id="username-input" placeholder="something to call you">
-                <input type="file" accept="image/png, image/jpeg" id="pfp-input" />
-                <button id="username-submit">that's me →</button>
+                <div class="main">
+                    <div class="left">
+                        <label for="username-input">pick a name</label>
+                        <input type="text" id="username-input" placeholder="something to call you">
+                        <input type="file" id="pfp-input" accept="image/*">
+                        <button id="username-submit">that's me →</button>
+                    </div>
+                    <div class="right">
+                        <img id="cropImg" style="max-width:100%">
+                    </div>
+                </div>
+                
                 <div class="step-dots">
                     <div class="step-dot active"></div>
                     <div class="step-dot"></div>
