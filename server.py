@@ -239,11 +239,23 @@ def get_users_with_key(data):
             active.append(user)
             
     return {'list': list(active)}
-            
-# @socketio.on('react')
-# def react(data):
+typing = {}     
+@socketio.on('typing')
+def vhange_typing(data):
+    global typing
+    if data['prevEntered']:
+        if not data['channel'] in typing.keys() or not session['username'] in typing[data['channel']]:
+            return
+        typing[data['channel']].pop(typing[data['channel']].index(session['username']))
+        socketio.emit('typing', typing[data['channel']])
+        return
+    if not data['channel'] in typing.keys():
+        typing[data['channel']] = []
+    if session['username'] in typing[data['channel']]:
+        return;
+    typing[data['channel']].append(session['username'])
+    socketio.emit('typing', typing[data['channel']], to=data['channel'])
 
-#     handle_direct_message({'to': data['user'], 'payload': ''})
 
 if __name__ == '__main__':  
     socketio.run(app, host  ='0.0.0.0', port=2994, ssl_context=('cert.pem', 'key.pem'))

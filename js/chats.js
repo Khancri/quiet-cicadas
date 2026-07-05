@@ -31,7 +31,7 @@ const daata = {
 }
 
 var channel = 'general'
-renderChannelHistory();
+renderChannelHistory(); 
 messagesLib.newChannel(channel, async () => {
     changeMessageBox('general')
 });
@@ -126,7 +126,29 @@ messageInput.addEventListener('keydown', async (e) => {
         messageInput.value = ''; 
         // console.log('no no ')
     }
+    if (messageInput.value === '') {
+        socket.emit('typing', {channel: channel, prevEntered: true})
+        return;
+    }
+    setTimeout(() => {
+        if (messageInput.value === '') {
+            socket.emit('typing', {channel: channel, prevEntered: true})
+        } else {
+        socket.emit('typing', {channel: channel, prevEntered: false});
+        }
+    }, 50)
+    socket.emit('typing', {channel: channel, prevEntered: false});
 });
+socket.on('typing', async (data) => {
+    const indicator = document.getElementById('typing-indicator');
+    if (data.length === 0) {
+        indicator.style.display = 'none';
+        return; 
+    } 
+    indicator.style.display = 'block';
+    const span = indicator.querySelector('.user');
+    span.innerText = data;
+})
 
 function renderChannelHistory(dmCallback, callback) {
     const history = messagesLib.getChannelHistory();
@@ -146,15 +168,17 @@ function renderChannelHistory(dmCallback, callback) {
 }
 
 async function changeMessageBox(channelName) {
+    socket.emit('typing', {channel: channel, prevEntered: true})
+    document.getElementById('typing-indicator').style.display = 'none';
     channel = channelName;
     messagesLib.undoAllActiveChannels();
     if (channel.startsWith('@')) {
         console.log(`.sidebar .dm-item[data-user-data="${encodeURIComponent(`${channel}`)}"]`)
-        document.querySelector(`.sidebar .dm-item[data-user-data="${encodeURIComponent(channel)}"]`).classList.add('active')
+        document.querySelector(`[data-user-data="${encodeURIComponent(channel)}"]`).classList.add('active')
         document.getElementById('channel-name').innerText = `${channel}`
     } else {
         console.log(`.sidebar .dm-item[data-channel-name="${encodeURIComponent(channel)}"]`)
-        document.querySelector(`.sidebar .dm-item[data-channel-data="${encodeURIComponent(channel)}"]`).classList.add('active')
+        document.querySelector(`[data-channel-data="${encodeURIComponent(channel)}"]`).classList.add('active')
         document.getElementById('channel-name').innerText = `#${channel}`
     }
     await regetKey();
@@ -225,11 +249,12 @@ socket.on('dm', async (message) => {
     if (channel === `@${obj.user}`){
         messagesLib.renderMessages(message, false, channel, socket); 
     }
-    const messages = document.getElementById('messages');
-    await saveMessage(message, `@${channel.replace('@', '')}`);
+    await saveMessage(message, `@${channel}`);
     
+    const messages = document.getElementById('messages');
     messages.scrollTop = messages.scrollHeight;
 });
+
 socket.on('dm-s', async (message) => {
     console.log(message.content)
     const privKey = await retrievePrivateKey();

@@ -69,7 +69,7 @@ function react(messages, channel, emoji, socket, messageObj = null) {
     reactionRow.className = 'reaction-row'
     const reactionEl = document.createElement('div'); 
     reactionEl.className = 'reaction'; reactionEl.dataset.emoji = emoji;
-    reactionEl.innerHTML = `<span class="emoji">${emoji}</span>:<span class="counter">${messages[id].reactions[emoji].length}</span>`
+    reactionEl.innerHTML = `<span class="emoji">${emoji}</span><span class="counter">${messages[id].reactions[emoji].length}</span>`
     reactionEl.title = messages[id].reactions[emoji].join(', ')
     if (messages[id].reactions[emoji].includes(getUsername())) {
         reactionEl.classList.add('self-reacted')
@@ -132,6 +132,16 @@ function renderMessages(data, overwrite = false, channel, socket) {
     }
 }
 
+function closeChannel(channelName) {
+    var channelRanking;
+    if (channelName.startsWith('@')) {
+        channelRanking = document.querySelector(`[data-user-data="${channelName.replace('@', '')}"]`);
+    } else {
+        channelRanking = document.querySelector(`[data-channel-data="${channelName}"]`);
+    }
+    removeChannelFromHistory(channelName)
+    channelRanking.remove();
+}
 
 function newChannel(channelName, callback) {
     if (document.querySelector(`[data-channel-data="${encodeURIComponent(channelName)}"]`) !== null) {
@@ -139,21 +149,17 @@ function newChannel(channelName, callback) {
         document.querySelector(`[data-channel-data="${encodeURIComponent(channelName)}"]`).classList.add('active');
         return;
     };
-    const channelEl = document.createElement('div');
-    channelEl.className = 'dm-item';
-    undoAllActiveChannels();
-    channelEl.classList.add('active');
-    channelEl.dataset.channelData = `${encodeURIComponent(channelName)}`
-    const channelNameEl = document.createElement('span');
-    channelNameEl.textContent = channelName;
-    channelEl.onclick = callback;
-    const pfp = document.createElement('div')
-    pfp.classList.add('avatar-sm');
-    pfp.innerText = '#'
-    channelEl.appendChild(pfp);
-    channelEl.appendChild(channelNameEl);
-    console.log(channelEl);
-    document.querySelector('.channelList').appendChild(channelEl);
+    const channelRanking = document.querySelector('#t-channelRanking').content.cloneNode(true);
+    channelRanking.querySelector('span').innerText = channelName;
+    // channelRanking.onclick = callback
+    channelRanking.querySelector('.channel-exit').onclick = () => closeChannel(channelName)
+    // channelRanking.dataset.channelData = channelName;
+    console.log(channelRanking);
+    document.querySelector('.channelList').appendChild(channelRanking);
+    const list = document.querySelectorAll('.channelList > .dm-item');
+    console.log(list[list.length-1]);
+    list[list.length-1].onclick = callback;
+    list[list.length-1].dataset.channelData = encodeURIComponent(channelName);
     addChannelToHistory(channelName)
 }
 
@@ -163,23 +169,24 @@ function newDirectMessageChannel(user, callback) {
         document.querySelector(`[data-user-data="${encodeURIComponent(user)}"]`).classList.add('active');
         return;
     };
-    const channelEl = document.createElement('div');
-    channelEl.className = 'dm-item';
-    channelEl.dataset.userData = encodeURIComponent('@'+ user)
     undoAllActiveChannels();
-    channelEl.classList.add('active');
-    const channelNameEl = document.createElement('span');
-    channelNameEl.textContent = user;
-    channelEl.onclick = callback;
-    const pfp = document.createElement('div')
-    pfp.classList.add('avatar-sm');
-    const pfpImg = document.createElement('img');
-    pfpImg.src = `/pfp/${user}`
-    pfp.appendChild(pfpImg);
-    channelEl.appendChild(pfp);
-    channelEl.appendChild(channelNameEl);
-    console.log(channelEl);
-    document.querySelector('.channelList').appendChild(channelEl);
+    const channelRanking = document.querySelector('#t-userRanking').content.cloneNode(true);
+    channelRanking.querySelector('span').innerText = user;
+    channelRanking.querySelector('img').src = `/pfp/${user}`
+    channelRanking.querySelector('.channel-exit').onclick = () => closeChannel('@' + channelName)
+    channelRanking.onclick = (e) => {
+        if (e.closest('.channel-exit')) {
+            return;
+        }
+        callback();
+    };
+    console.log(channelRanking);
+    document.querySelector('.channelList').appendChild(channelRanking);
+    
+    const list = document.querySelectorAll('.channelList > .dm-item');
+    list[list.length-1].dataset.userData = encodeURIComponent('@' + user);
+    list[list.length-1].onclick = callback;
+    console.log(list[list.length-1]);
     addChannelToHistory(`@${user}`);
 }
 

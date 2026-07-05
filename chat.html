@@ -9,12 +9,33 @@
     <script type="module" src="file/js/chats.js" defer></script>
     <link rel="shortcut icon" href="file/svg/favicon.svg" type="image/x-icon">
 </head>
+
+<template id="t-channelRanking">
+    <div class="dm-item" data-channel-data="paramore">
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <div class="avatar-sm">#</div><span>paramore</span>
+        </div>
+        <div class="channel-exit">⤬</div>   
+    </div>
+</template>
+
+<template id="t-userRanking">
+    <div class="dm-item" data-user-data="paramore">
+        <div style="display: flex; gap: 8px; align-items: center; overflow: scroll;">
+            <div class="avatar-sm"><img src="" alt=""></div><span>paramore</span>
+        </div>
+        <div class="channel-exit">⤬</div>   
+    </div>
+</template>
+
 <body>
     <div id="context">
         <button class="emoji-context">react</button>
     </div>
 
     <div class="header">
+        <input type="checkbox" id="sidebar-toggle" class="sidebar-toggle-input">
+        <label for="sidebar-toggle" class="hamburger">☰</label>
         <div class="dots">
             <div class="dot r"></div>
             <div class="dot y"></div>
@@ -40,7 +61,12 @@
                 <h1 id="channel-name"></h1><span style="color:var(--text-muted); font-size:11px;">end-to-end encrypted</span>
             </div>
             <div class="messages" id="messages"></div>
-            <input type="text" id="message-input" placeholder="say something...">
+            <div>
+                <div id="typing-indicator">
+                    <span class="user">khancri</span> is typing..
+                </div>
+                <input type="text" id="message-input" placeholder="say something...">
+            </div>
         </div>
     </div>
 </body>
