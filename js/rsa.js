@@ -13,8 +13,8 @@ export async function sendMessage(content, user, socket) {
         const encrypted = await cryptoAPI.encryptMessage(content, publicKey)
         socket.emit('dm', {to: user, payload: encrypted}, async (data) => {
             console.log(data)
-            renderMessages({[data.uuid]: {'date': data.date, content: content, user: getUsername()}}, false, `@${user}`, socket)
-            saveMessage({[data.uuid]: {'date': data.date, content: content, user: getUsername()}}, `@${user}`)
+            renderMessages({[data.hash]: {'date': data.date, content: content, user: getUsername()}}, false, `@${user}`, socket)
+            saveMessage({[data.hash]: {'date': data.date, content: content, user: getUsername()}}, `@${user}`)
 
         })
     });

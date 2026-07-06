@@ -155,8 +155,8 @@ function newChannel(channelName, callback) {
     channelRanking.querySelector('.channel-exit').onclick = () => closeChannel(channelName)
     // channelRanking.dataset.channelData = channelName;
     console.log(channelRanking);
-    document.querySelector('.channelList').appendChild(channelRanking);
-    const list = document.querySelectorAll('.channelList > .dm-item');
+    document.querySelector('#channelList').appendChild(channelRanking);
+    const list = document.querySelectorAll('#channelList > .dm-item');
     console.log(list[list.length-1]);
     list[list.length-1].onclick = callback;
     list[list.length-1].dataset.channelData = encodeURIComponent(channelName);
@@ -181,9 +181,9 @@ function newDirectMessageChannel(user, callback) {
         callback();
     };
     console.log(channelRanking);
-    document.querySelector('.channelList').appendChild(channelRanking);
+    document.querySelector('#dmList').appendChild(channelRanking);
     
-    const list = document.querySelectorAll('.channelList > .dm-item');
+    const list = document.querySelectorAll('#dmList > .dm-item');
     list[list.length-1].dataset.userData = encodeURIComponent('@' + user);
     list[list.length-1].onclick = callback;
     console.log(list[list.length-1]);

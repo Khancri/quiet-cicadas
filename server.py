@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory, session, send_file
+from flask import Flask, jsonify, request, send_from_directory, session, send_file, redirect, abort
 from datetime import datetime
 from flask_cors import CORS
 import flask_socketio
@@ -16,7 +16,16 @@ CORS(app)
 
 user_sockets = {}  # username → socket id
 
-#region JSON
+#region Utils
+def getChannel(channel: str, username: str):
+    if channel.startswith('@'):
+        channel = channel[1:]
+        if channel > username:
+            return username + channel
+        else:
+            return channel+username
+    return channel
+
 def load(file):
     if not os.path.exists(file):
         return {}
@@ -28,15 +37,19 @@ def save(file, todos):
         json.dump(todos, f, indent=4)
 #endregion
 
+#region HTML Endpoints
 @app.route('/chat')
 def chat():
+    if not 'username' in session.keys():
+        return abort(403);
     return send_from_directory('.', 'chat.html')
 
 @app.route('/')
 def main():
     if 'username' in session.keys():
-        return send_from_directory('.', 'chat.html')
+        return redirect('/chat')
     return send_from_directory('.', 'client.html')
+#endregion
 
 @app.route('/file/<path:name>')
 def get_file(name):
@@ -75,6 +88,19 @@ def login():
         session['username'] = username
         return jsonify({'ok': True})
     return jsonify({'ok': False})
+#region ErrorHandler
+@app.errorhandler(403)
+def unauthorized(e):
+    return send_from_directory('.', '403.html'), 403
+
+@app.errorhandler(404)
+def not_found(e):
+    return send_from_directory('.', '404.html'), 404
+#endregion
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return '', 204
 
 @app.route('/signup', methods=['POST'])
 def signup():
@@ -112,6 +138,9 @@ def view_profile(userName: str):
 def on_join(data):
     print(session['username'])
     user_sockets[session['username']] = request.sid
+    if data['room'].startswith('@'):
+        join_room(getChannel(data['room'], session['username']))
+        return
     join_room(data["room"])
 
 @socketio.on('message')
@@ -125,11 +154,6 @@ def post_message(data):
         'date': datetime.now().isoformat(),
     }
     socketio.emit('new_message', {hash: message_obj}, to=data['channel'])
-
-
-@app.route('/messages', methods=['POST'])
-def get_messages():
-    return '', 200
 
 @socketio.on('react')
 def react(message): #{channel: 'channel', id: 'id'}
@@ -155,14 +179,6 @@ def update_key_list(data):
         file['metadata']['users'] = [];
     file['metadata']['users'].append(session['username'])
     save(f'msg/{data['channel']}.json', file)
-
-@app.route('/key', methods=['GET'])
-def getKey():
-    channel = request.json['channel']
-    data = load(f'msg/{channel}.json')
-    if 'metadata' not in data:
-        return jsonify({'key': None})
-    return jsonify({'key': data['metadata']})
 
 @socketio.on('unreact')
 def unreact(message):
@@ -200,6 +216,7 @@ def direct_message(data):
         socketio.emit('dm', {hash: message_obj}, to=to_sid)
         print('hi' + hash)
         return {'hash': hash, 'date': date}
+    
 @socketio.on('disconnect')
 def handle_disconnect():
     # remove from user_sockets
@@ -243,19 +260,26 @@ typing = {}
 @socketio.on('typing')
 def vhange_typing(data):
     global typing
+    channel = getChannel(data['channel'], session['username'])
     if data['prevEntered']:
-        if not data['channel'] in typing.keys() or not session['username'] in typing[data['channel']]:
+        if not channel in typing.keys() or not session['username'] in typing[channel]:
             return
-        typing[data['channel']].pop(typing[data['channel']].index(session['username']))
-        socketio.emit('typing', typing[data['channel']])
+        typing[channel].pop(typing[channel].index(session['username']))
+        socketio.emit('typing', typing[channel])
         return
-    if not data['channel'] in typing.keys():
-        typing[data['channel']] = []
-    if session['username'] in typing[data['channel']]:
+    if not channel in typing.keys():
+        typing[channel] = []
+    if session['username'] in typing[channel]:
         return;
-    typing[data['channel']].append(session['username'])
-    socketio.emit('typing', typing[data['channel']], to=data['channel'])
+    typing[channel].append(session['username'])
+    socketio.emit('typing', typing[channel], to=channel)
 
+@socketio.on('rsa-key-regen')
+def updatePublicKey(data):
+    publicKey = data['publicKey']
+    dw = load('profiles.json')
+    dw[session['username']]['key'] = publicKey
+    save('profiles.json', dw)
 
 if __name__ == '__main__':  
     socketio.run(app, host  ='0.0.0.0', port=2994, ssl_context=('cert.pem', 'key.pem'))

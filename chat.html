@@ -32,9 +32,10 @@
     <div id="context">
         <button class="emoji-context">react</button>
     </div>
-
+    <div id="toast-zone">
+    </div>
     <div class="header">
-        <input type="checkbox" id="sidebar-toggle" class="sidebar-toggle-input">
+        <input type="checkbox" id="sidebar-toggle" class="sidebar-toggle-input" hidden>
         <label for="sidebar-toggle" class="hamburger">☰</label>
         <div class="dots">
             <div class="dot r"></div>
@@ -42,13 +43,28 @@
             <div class="dot g"></div>
         </div>
         <span>cicadas</span>
-        <p id="current-user-username"></p>
+        <div class="account-menu">
+            <span id="current-user-username"></span>
+            <div class="dropdown" id="account-dropdown">
+                <button id="regen-keys">regenerate keys</button>
+                <button id="change-pfp">change pfp</button>
+                <input type="file" id="pfp-file-input" hidden>
+                <button id="logout">logout</button>
+            </div>
+        </div>
     </div>
 
     <div class="main">
         <div class="sidebar">
-            <div class="channelList">
-                <span class="sidebar-label">messages</span>
+            <div id="that-one-container-for-rankings">
+
+                <div id="channelList" class="rankingList">
+                    <span class="sidebar-label">messages</span>
+                </div>
+                <hr>
+                <div id="dmList" class="rankingList">
+                    <span class="sidebar-label">direct messages</span>
+                </div>
             </div>
 
             <div class="addChannel">

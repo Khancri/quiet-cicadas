@@ -85,10 +85,11 @@ async function pfpUpload() {
 
 async function signUp() {
     const keys = await createKey();
+    await savePrivateKey(keys.privateKey)
+
     const key = await window.crypto.subtle.exportKey('spki', keys.publicKey )
     const b64 = btoa(String.fromCharCode(...new Uint8Array(key)))
-    console.log(new TextDecoder().decode(key))
-    await savePrivateKey(keys.privateKey)
+    
     const done = await fetch(`/signup`, {method: 'POST', headers: {
         'Content-Type': 'application/json' // Tell the server you are sending JSON
       },
