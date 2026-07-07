@@ -117,3 +117,11 @@ export async function clearChannel(channel) {
         tx.onerror = () => reject(tx.error);
     });
 }
+export async function obliterate() {
+    localStorage.clear();
+    indexedDB.databases().then((dbs) => {
+        dbs.forEach((db) => {
+            indexedDB.deleteDatabase(db.name);
+        });
+    });
+}

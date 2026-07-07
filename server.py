@@ -239,7 +239,7 @@ def request_key(data): # data: user, channel
 def request_key_complete(data):
     to_sid = user_sockets.get(data['user'])
     if to_sid:
-        socketio.emit('key_exchange_complete', data['payload'], to=to_sid)
+        socketio.emit('request_key_complete', data['payload'], to=to_sid)
 
 @socketio.on('channel_users')
 def get_users_with_key(data):

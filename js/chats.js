@@ -7,7 +7,7 @@ import { createKey } from './crypto-rsa.js';
 import * as messagesLib from './messageLib.js'
 import { updateInfo } from './userInfo.js';
 import { twemoji } from './twemoji.js';
-import { saveMessage, getMessages, saveKey, getKey, retrievePrivateKey, savePrivateKey } from './db.js';
+import { saveMessage, getMessages, saveKey, getKey, retrievePrivateKey, savePrivateKey, obliterate } from './db.js';
 
 const socket = io();
 var key = null;
@@ -88,7 +88,7 @@ socket.on('key_exchange', async (data, callback) => {
     const publicKey = await crypto.subtle.importKey('spki', keyBuffer, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['wrapKey']);
     const wrappedKey = await crypto.subtle.wrapKey('raw', requestedKey, publicKey, {name: 'RSA-OAEP'});
     console.log(callback)
-    socket.emit('key_request_complete', {user: data['user'], payload: btoa(String.fromCharCode(...new Uint8Array(wrappedKey)))});
+    socket.emit('request_key_complete', {user: data['user'], payload: btoa(String.fromCharCode(...new Uint8Array(wrappedKey)))});
 });
 
 document.getElementById('change-pfp').onclick = async () => {
@@ -97,7 +97,8 @@ document.getElementById('change-pfp').onclick = async () => {
 
 document.getElementById('logout').onclick = async () => {
     const thing = await fetch('/logout', {method: 'POST'});
-    alert(thing.status + ': ' + thing.ok)
+    await obliterate();
+    alert('everything obliterated!')
 }
 
 document.getElementById('regen-keys').onclick = async () => {
@@ -119,7 +120,7 @@ document.getElementById('pfp-file-input').onchange = async (e) => {
     const pfpUpload = await fetch('/pfp', {method: 'POST', body: formData});
 };
 
-socket.on('key_exchange_complete', async (key_) => {
+socket.on('request_key_complete', async (key_) => {
     const keyBuffer = Uint8Array.from(atob(key_), c => c.charCodeAt(0)).buffer;
     const privKey = await retrievePrivateKey();
     key_ = await window.crypto.subtle.unwrapKey('raw', keyBuffer, privKey, {name: 'RSA-OAEP'}, {name: 'AES-GCM', length: 256}, true, ['encrypt', 'decrypt'])
