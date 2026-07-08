@@ -5,9 +5,9 @@ import * as cryptoAPI from './crypto.js';
 import * as RSA from './rsa.js';
 import { createKey } from './crypto-rsa.js';
 import * as messagesLib from './messageLib.js'
-import { updateInfo } from './userInfo.js';
+import { getUsername, updateInfo } from './userInfo.js';
 import { twemoji } from './twemoji.js';
-import { saveMessage, getMessages, saveKey, getKey, retrievePrivateKey, savePrivateKey, obliterate } from './db.js';
+import * as db from './db.js'
 
 const socket = io();
 var key = null;
@@ -19,7 +19,7 @@ const daata = {
         user: 'khancri',
         reactions: {
             '🎉': ['khancri', 'l.', 'giitar_ruff'],
-            '⛷': ['khancri']
+            '⛷': ['sneakylinkbj']
         }
     },
     'uuid2': {
@@ -50,29 +50,37 @@ async function fetchKey(channel) {
     const list = await emitAsync(socket, 'channel_users', {channel})
     if (list.list === null) {
         key = await cryptoAPI.createKey();
-        saveKey(channel, key)
+        db.saveKey(channel, key)
         socket.emit('keyupdate', {channel});
         keySearching = false;
     } else {
         if (list.list === []) return;
+        console.log(list.list[0])
         socket.emit('request_key', {user: list.list[0], channel: channel})
     }
 
+}
+
+function getUserFromChannel() {
+    const list = channel.replace('@', '').split('-')
+        list.splice(list.indexOf(getUsername()), 1); const user = list[0];
+        return user;
 }
 
 var keySearching = false;
 async function regetKey() { 
     if (channel.startsWith('@')) {
         
-        const user = channel.replace('@', '')
+        const user = getUserFromChannel();
         console.log(`user: ${user}`)
         var key_ = await emitAsync(socket, 'public_key_request', {user})
         key_ = Uint8Array.from(atob(key_), c => c.charCodeAt(0));
         key_ = await window.crypto.subtle.importKey('spki', key_, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['encrypt'])
         console.log(key_)
         key = key_
+        return;
     }
-    key_ = await getKey(channel)
+    key_ = await db.getKey(channel)
     if (key_ === null) {
         fetchKey(channel);
         keySearching = true;
@@ -82,7 +90,7 @@ async function regetKey() {
 }
     
 socket.on('key_exchange', async (data, callback) => {
-    const requestedKey = await getKey(data['channel']);
+    const requestedKey = await db.getKey(data['channel']);
     const key = await emitAsync(socket,'public_key_request', {user: data['user']})
     const keyBuffer = Uint8Array.from(atob(key), c => c.charCodeAt(0));
     const publicKey = await crypto.subtle.importKey('spki', keyBuffer, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['wrapKey']);
@@ -97,13 +105,13 @@ document.getElementById('change-pfp').onclick = async () => {
 
 document.getElementById('logout').onclick = async () => {
     const thing = await fetch('/logout', {method: 'POST'});
-    await obliterate();
+    await db.obliterate();
     alert('everything obliterated!')
 }
 
 document.getElementById('regen-keys').onclick = async () => {
     const keys = await createKey();
-    await savePrivateKey(keys.privateKey);
+    await db.savePrivateKey(keys.privateKey);
 
     const key = await window.crypto.subtle.exportKey('spki', keys.publicKey )
     const b64 = btoa(String.fromCharCode(...new Uint8Array(key)))
@@ -122,10 +130,10 @@ document.getElementById('pfp-file-input').onchange = async (e) => {
 
 socket.on('request_key_complete', async (key_) => {
     const keyBuffer = Uint8Array.from(atob(key_), c => c.charCodeAt(0)).buffer;
-    const privKey = await retrievePrivateKey();
+    const privKey = await db.retrievePrivateKey();
     key_ = await window.crypto.subtle.unwrapKey('raw', keyBuffer, privKey, {name: 'RSA-OAEP'}, {name: 'AES-GCM', length: 256}, true, ['encrypt', 'decrypt'])
     keySearching = false;
-    saveKey(channel, key_);
+    db.saveKey(channel, key_);
     key=key_;
 });
 
@@ -150,7 +158,7 @@ messageInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
         if (messageInput.value.trim() == '') return;
         if (channel.startsWith('@')) {
-            const user = channel.replace('@', '');
+            const user = getUserFromChannel();
             await encryptOpts['dm'](messageInput.value.trim(), user, socket);
         } else {
             await encryptOpts['group'](messageInput.value.trim(), channel);
@@ -198,22 +206,30 @@ async function changeMessageBox(channelName) {
     socket.emit('typing', {channel: channel, prevEntered: true})
     clearTimeout(timeout)
     document.getElementById('typing-indicator').style.display = 'none';
-    channel = channelName;
     messagesLib.undoAllActiveChannels();
+    if (channelName.startsWith('@')) {
+        channel = getDMChannelName(channelName.replace('@', ''))
+    } else {
+        channel = channelName
+    }
+
     if (channel.startsWith('@')) {
-        console.log(`.sidebar .dm-item[data-user-data="${encodeURIComponent(`${channel}`)}"]`)
-        document.querySelector(`[data-user-data="${encodeURIComponent(channel)}"]`).classList.add('active')
-        document.getElementById('channel-name').innerText = `${channel}`
+        const user = getUserFromChannel();
+        console.log(`.sidebar .dm-item[data-user-data="${encodeURIComponent(user)}"]`)
+        document.querySelector(`[data-user-data="${encodeURIComponent(user)}"]`).classList.add('active')
+        document.getElementById('channel-name').innerText = `@${user}`
     } else {
         console.log(`.sidebar .dm-item[data-channel-name="${encodeURIComponent(channel)}"]`)
         document.querySelector(`[data-channel-data="${encodeURIComponent(channel)}"]`).classList.add('active')
         document.getElementById('channel-name').innerText = `#${channel}`
+        channel = channelName
     }
     await regetKey();
 
     document.getElementById('messages').innerHTML = '';
 
     getMessages1();
+    console.log(channel)
     socket.emit("join", { room: channel });
 }
 document.getElementById('add-new-dm').addEventListener('click', async () => {
@@ -232,13 +248,22 @@ document.getElementById('add-new-dm').addEventListener('click', async () => {
     console.log('hi?');
 })
 
+function getDMChannelName(user) {
+    if (user.localeCompare(getUsername()) < 0) {
+        return `@${user}-${getUsername()}`
+    } else {
+        return`@${getUsername()}-${user}`
+    }
+}
+
 document.getElementById('direct-message').onclick = async () => {
     const user = prompt('who do you want to dm?')
     messagesLib.newDirectMessageChannel(user, async () => {
             await changeMessageBox(`@${user}`);
         });
     document.getElementById('channel-name').innerText = `@${user}`
-    channel = `@${user}`;
+    channel = getDMChannelName(user);
+    console.log(channel);
     await regetKey();
     document.getElementById('messages').innerHTML = '';
     
@@ -260,7 +285,7 @@ document.getElementById('current-user-username').onclick = async (e) => {
     }, {once: true})
 };
 async function getMessages1() {
-    var data = await getMessages(channel);
+    var data = await db.getMessages(channel);
     if (!data || Object.keys(data).length === 0) return;
     messagesLib.renderMessages(data, false, channel, socket);
 }
@@ -269,7 +294,7 @@ socket.on('new_message', async (message) => {
     message[Object.keys(message)[0]].content = new TextDecoder().decode(await cryptoAPI.decryptMessage(message[Object.keys(message)[0]].content, message[Object.keys(message)[0]].iv, key))
     messagesLib.renderMessages(message, false, channel, socket); 
     const messages = document.getElementById('messages');
-    await saveMessage(message, channel);
+    await db.saveMessages(message, channel);
     
     messages.scrollTop = messages.scrollHeight;
 });
@@ -278,46 +303,49 @@ socket.on('new_message', async (message) => {
 
 
 socket.on('dm', async (message) => {
+    console.log(message)
     const obj = message[Object.keys(message)[0]];
-    const privKey = await retrievePrivateKey();
+    const privKey = await db.retrievePrivateKey();
     obj.content = new TextDecoder().decode(await RSA.receiveMessage(obj.content, privKey))
-    if (channel === `@${obj.user}`){
+    if (channel === getDMChannelName(obj['user'])){
         messagesLib.renderMessages(message, false, channel, socket); 
     }
-    await saveMessage(message, `@${channel}`);
+    await db.saveMessages(message, `${channel}`);
     
     const messages = document.getElementById('messages');
     messages.scrollTop = messages.scrollHeight;
 });
 
-socket.on('dm-s', async (message) => {
-    console.log(message.content)
-    const privKey = await retrievePrivateKey();
-    message.content = new TextDecoder().decode(await RSA.receiveMessage(message.content, privKey))
-    messagesLib.renderMessages(message, false, channel, socket); 
-    const messages = document.getElementById('messages');
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
-    messages.scrollTop = messages.scrollHeight;
-});
+socket.on('message_reacted', (data) => {
+    console.log(data)
+    messagesLib.react(data['id'], channel, data['reaction'], data['user'], data['action'], socket);
+    db.updateReactions(data['id'], data['reaction'], data['user'], channel)
+})
 
-async function gtk() {
-    return await retrievePrivateKey()
+document.querySelector('.hamburger').onclick = () => {
+    document.querySelector('.sidebar').style.transform = 'none';
 }
 
-socket.on('message_reacted', (message) => {
-    messagesLib.renderMessages(message, true, channel, socket);
-})
+document.querySelector('.sidebar-disable').onclick = () => {
+    document.querySelector('.sidebar').style.transform = 'translateX(-100%)';
+}
+
 
 function unreact(emoji, messageID, channel) {
     socket.emit('unreact', {id: selectedMessageID, reaction: emoji, channel: channel})
 }
 
+export function updateSelectedMessageID(smsgid) {
+    selectedMessageID = smsgid;
+}
+
 document.querySelector('.emoji-context').addEventListener('click', () => {
+    console.log(channel);
     socket.emit('react', {id: selectedMessageID, reaction: prompt('emoji? '), channel: channel})
 })
 
 socket.on('direct_message', async (data) => {
-    const privKey = await retrievePrivateKey();
+    const privKey = await db.retrievePrivateKey();
     if (privKey === null) {alert('NOOOO TRUMP'); return;}
     const decrypted = await RSA.receiveMessage(data, privKey);
     alert(new TextDecoder().decode(decrypted));

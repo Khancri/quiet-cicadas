@@ -19,7 +19,7 @@ function openDB() {
     });
 }
 
-export async function saveMessage(messageObj, channel) {
+export async function saveMessages(messageObj, channel) {
     const db = await openDB();
     return new Promise((resolve, reject) => {
         const tx = db.transaction('messages', 'readwrite');
@@ -41,7 +41,6 @@ export async function getMessages(channel) {
             for (const msg of req.result) {
                 const { id, channel, ...rest } = msg;
                 result[id] = rest[id];
-                console.log(rest);
             }
             resolve(result);
         };
@@ -124,4 +123,24 @@ export async function obliterate() {
             indexedDB.deleteDatabase(db.name);
         });
     });
+}
+
+export async function updateReactions(id, reaction, user, channel) {
+    const messages = await getMessages(channel)
+    console.log(messages);
+    const message = messages[id]
+    console.log(message);
+    if (message === undefined) {
+        return;
+    }
+    if (!Object.hasOwn(message, 'reactions')) {
+        message.reactions = {};
+    }
+    console.log(message);
+    if (!Object.hasOwn(message.reactions, reaction)) {
+        message.reactions[reaction] = [];
+    }
+    message.reactions[reaction].push(user);
+    await saveMessages({[id]: message}, channel);
+    console.log(message)
 }

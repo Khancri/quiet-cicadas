@@ -15,15 +15,16 @@ app.secret_key = 'R5m9SAXRxLwERafXLj5hqW4qru98NhWz'
 CORS(app)
 
 user_sockets = {}  # username → socket id
+rooms = {}
 
 #region Utils
 def getChannel(channel: str, username: str):
     if channel.startswith('@'):
         channel = channel[1:]
         if channel > username:
-            return username + channel
+            return f'@{username}-{channel}'
         else:
-            return channel+username
+            return  f'@{channel}-{username}'
     return channel
 
 def load(file):
@@ -42,13 +43,13 @@ def save(file, todos):
 def chat():
     if not 'username' in session.keys():
         return abort(403);
-    return send_from_directory('.', 'chat.html')
+    return send_from_directory('html', 'chat.html')
 
 @app.route('/')
 def main():
     if 'username' in session.keys():
         return redirect('/chat')
-    return send_from_directory('.', 'client.html')
+    return send_from_directory('html', 'client.html')
 #endregion
 
 @app.route('/file/<path:name>')
@@ -91,11 +92,11 @@ def login():
 #region ErrorHandler
 @app.errorhandler(403)
 def unauthorized(e):
-    return send_from_directory('.', '403.html'), 403
+    return send_from_directory('html', '403.html'), 403
 
 @app.errorhandler(404)
 def not_found(e):
-    return send_from_directory('.', '404.html'), 404
+    return send_from_directory('html', '404.html'), 404
 #endregion
 @app.route('/logout', methods=['POST'])
 def logout():
@@ -134,12 +135,21 @@ def view_profile(userName: str):
         return '', 404
     return jsonify(file[userName])
 
-@socketio.on("join")
-def on_join(data):
-    print(session['username'])
+@socketio.on('connect')
+def connectedUser():
+    global user_sockets
     user_sockets[session['username']] = request.sid
+
+@socketio.on('disconnect')
+def disconnecteduser(socket):
+    global user_sockets
+    del user_sockets[session['username']]
+
+@socketio.on('join')
+def on_join(data):
+    print(session['username'], data['room'])
     if data['room'].startswith('@'):
-        join_room(getChannel(data['room'], session['username']))
+        join_room(data['room'])
         return
     join_room(data["room"])
 
@@ -156,20 +166,32 @@ def post_message(data):
     socketio.emit('new_message', {hash: message_obj}, to=data['channel'])
 
 @socketio.on('react')
-def react(message): #{channel: 'channel', id: 'id'}
-    file = load(f'msg/{message['channel']}.json')
-    
-    if not emoji.is_emoji(message['reaction']): 
+def react(data): # {channel, id, reaction}
+    if not emoji.is_emoji(data['reaction']):
         return '', 400
-    if not 'reactions' in file['messages'][message['id']].keys(): 
-        file['messages'][message['id']]['reactions'] = {}
-    if not message['reaction'] in file['messages'][message['id']]['reactions'].keys(): 
-        file['messages'][message['id']]['reactions'][message['reaction']] = []
-    if session['username'] in file['messages'][message['id']]['reactions'][message['reaction']]: return '', 304
-    file['messages'][message['id']]['reactions'][message['reaction']].append(session['username'])
-    save(f'msg/{message['channel']}.json', file)
-    socketio.emit('message_reacted', {message['id']: file['messages'][message['id']]}, to=message['channel'])
-    
+    print(data['channel'], data['id'])
+    socketio.emit('message_reacted', {
+        'id': data['id'],
+        'reaction': data['reaction'],
+        'user': session['username'],
+        'action': 'add'
+    }, to=data['channel'])
+    print(data['channel'])
+
+@socketio.on('fweh')
+def fweh(data):
+    print(data)
+    socketio.emit('trump please save us', to=data['channel'])
+
+@socketio.on('unreact')
+def unreact(data):
+    socketio.emit('message_reacted', {
+        'id': data['id'],
+        'reaction': data['reaction'],
+        'user': session['username'],
+        'action': 'remove'
+    }, to=data['channel']);
+
 @socketio.on('keyupdate')
 def update_key_list(data):
     file = load(f'msg/{data['channel']}.json')
@@ -179,16 +201,6 @@ def update_key_list(data):
         file['metadata']['users'] = [];
     file['metadata']['users'].append(session['username'])
     save(f'msg/{data['channel']}.json', file)
-
-@socketio.on('unreact')
-def unreact(message):
-    file = load(f'msg/{message['channel']}.json')
-    print(message['id'])
-    file['messages'][message['id']]['reactions'][message['reaction']].pop(file['messages'][message['id']]['reactions'][message['reaction']].index(session['username']))
-    if len(file['messages'][message['id']]['reactions'][message['reaction']]) == 0:
-        del file['messages'][message['id']]['reactions'][message['reaction']]
-    save(f'msg/{message['channel']}.json', file)
-    socketio.emit('message_reacted', {message['id']: file['messages'][message['id']]}, to=message['channel'])
 
 @socketio.on('direct_message')
 def handle_direct_message(data):
@@ -212,16 +224,11 @@ def direct_message(data):
         'content': payload,
         'date': date,
     }
+    print(message_obj)
     if to_sid:
         socketio.emit('dm', {hash: message_obj}, to=to_sid)
         print('hi' + hash)
         return {'hash': hash, 'date': date}
-    
-@socketio.on('disconnect')
-def handle_disconnect():
-    # remove from user_sockets
-    global user_sockets
-    user_sockets = {k: v for k, v in user_sockets.items() if v != request.sid}
 
 @socketio.on('public_key_request')
 def key_request(data):
@@ -231,7 +238,9 @@ def key_request(data):
 @socketio.on('request_key')
 def request_key(data): # data: user, channel
     print(data)
-    to_sid = user_sockets.get(data['user'])
+    to_sid = user_sockets.get(data['user'], None)
+    if to_sid == None:
+        print('no user man sorry')
     if to_sid:
         socketio.emit('key_exchange', {'channel': data['channel'], 'user': session['username']}, to=to_sid)
 
