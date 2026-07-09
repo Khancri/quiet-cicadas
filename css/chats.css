@@ -334,9 +334,15 @@ flex-shrink: 0;
     .main {
         position: relative;
     }
+    .sidebar-disable {
+        display: block;
+    }
 }
 
 @media (min-width: 601px) {
+    .sidebar-disable {
+        display: none;
+    }
     .hamburger { display: none; }
 }   
 .channel-exit {

@@ -126,6 +126,7 @@ document.getElementById('pfp-file-input').onchange = async (e) => {
     const formData = new FormData();
     formData.append('pfp', img, 'pfp.png');
     const pfpUpload = await fetch('/pfp', {method: 'POST', body: formData});
+    document.getElementById('corner-pfp').src = `/pfp/${getUsername()}` + "?t=" + new Date().getTime()
 };
 
 socket.on('request_key_complete', async (key_) => {
