@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>cicadas</title>
     <link rel="stylesheet" href="file/css/base.css">
+    <link rel="stylesheet" href="file/css/cropper.css">
     <link rel="stylesheet" href="file/css/chats.css">
+    <link rel="stylesheet" href="file/css/account-page.css">
     <script type="module" src="file/js/chats.js" defer></script>
     <link rel="shortcut icon" href="file/svg/favicon.svg" type="image/x-icon">
 </head>
@@ -32,8 +34,70 @@
     <div id="context">
         <button class="emoji-context">react</button>
     </div>
-    <div id="toast-zone">
+    <div id="edit-profile" hidden>
+        <h2>edit profile</h2>
+
+
+        <div class="pfp-edit-wrap">
+            <img src="https://picsum.photos/seed/cicada/200/200" alt="pfp">
+            <div class="overlay-label">change</div>
+        </div>
+
+        <div class="field">
+            <label for="display-name">display name</label>
+            <input id="display-name" type="text" value="jade" maxlength="32">
+        </div>
+
+        <div class="handle-pronouns">
+            <div class="field">
+            <label for="handle">handle</label>
+            <input id="handle" type="text" value="jade_cicada" maxlength="24">
+            </div>
+            <div class="field">
+            <label for="pronouns">pronouns</label>
+            <input id="pronouns" type="text" value="they/them" maxlength="20">
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="bio">bio</label>
+            <textarea id="bio" maxlength="160">building cicadas, an e2e encrypted discord alternative.</textarea>
+            <span class="char-count">57 / 160</span>
+        </div>
+
+        <!-- <div class="field">
+            <label>status</label>
+            <div class="status-options">
+            <div class="status-dot-btn active"><span class="dot online"></span>online</div>
+            <div class="status-dot-btn"><span class="dot idle"></span>idle</div>
+            <div class="status-dot-btn"><span class="dot dnd"></span>dnd</div>
+            <div class="status-dot-btn"><span class="dot offline"></span>offline</div>
+            </div>
+        </div> -->
+
+        <div class="field">
+            <label for="custom-status">custom status</label>
+            <input id="custom-status" type="text" placeholder="what's happening?" maxlength="60">
+        </div>
+
+        <div class="actions">
+            <button class="btn" id="cancel-changes">cancel</button>
+            <button class="btn primary" id="profile-update">save</button>
+        </div>
     </div>
+    <div id="profile">
+        <div style="flex-direction: row; display: flex; align-items: center; justify-content: space-between;">
+            <b id="modal-username">Khancri</b>
+            <span class="date-created"><span style="font-size: 10px; color: var(--text-muted);">joined:</span><br><span class="a84r">Jan 1st, 1970</span></span>
+        </div>
+        <div style="flex-direction: row; display: flex; align-items: center; justify-content: space-between;"><p class="handle">@khancri</p><p class="pronouns">she/her</p></div>
+        <div class="pfp-glow-wrap">
+            <img src="pfp/khancri" class="modal-pfp">
+    </div>
+    <div class="bio">building cicadas, an e2e encrypted discord alternative. mossy terminal aesthetic enjoyer 🌿</div>
+    </div>
+    <div id="modal"></div>
+    <div id="toast-zone"></div>
     <div class="header">
         <input type="checkbox" id="sidebar-toggle" class="sidebar-toggle-input" hidden>
         <label for="sidebar-toggle" class="hamburger">☰</label>
@@ -44,11 +108,12 @@
         </div>
         <span>cicadas</span>
         <div class="account-menu">
-            <div style="display: flex; flex-direction: row; gap: .25rem; align-items: center; justify-items: center;"><span id="current-user-username"></span> <img class="avatar-sm" id="corner-pfp" src="/pfp/khancri" alt=""></div>
+            <div style="display: flex; flex-direction: row; gap: .25rem; align-items: center; justify-items: center;"><span id="current-user-username"></span> <div class="avatar-sm"class="avatar-sm" id="corner-pfp"><img src="/pfp/khancri" alt=""></div></div>
             <div class="dropdown" id="account-dropdown">
                 <button id="regen-keys">regenerate keys</button>
                 <button id="change-pfp">change pfp</button>
                 <input type="file" id="pfp-file-input" hidden>
+                <button id="customize-profile">customize profile</button>
                 <button id="logout">logout</button>
             </div>
         </div>

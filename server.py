@@ -113,7 +113,7 @@ def signup():
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
     key = info['publicKey']
     print(key)
-    profileObj = {'username': username, 'password': hashed.decode(), 'key': key}
+    profileObj = {'username': username, 'password': hashed.decode(), 'key': key, 'displayName': username}
     file = load('profiles.json')
     file[username] = profileObj
     save('profiles.json' , file)
@@ -289,6 +289,26 @@ def updatePublicKey(data):
     dw = load('profiles.json')
     dw[session['username']]['key'] = publicKey
     save('profiles.json', dw)
+
+@socketio.on('profile-update')
+def updateProfile(data):
+    profiles = load('profiles.json')
+    profile = profiles[session['username']]
+    if 'bio' in data.keys():
+        profile['bio'] = data['bio']
+    if 'pronouns' in data.keys():
+        profile['pronouns'] = data['pronouns']
+    if 'displayName' in data.keys():
+        profile['displayName'] = data['displayName']
+    profiles[session['username']] = profile
+    save('profiles.json', profiles)
+
+@socketio.on('view-profile')
+def viewProfile(data):
+    profile = load('profiles.json')[data['user']]
+    del profile['key']; del profile['password']; del profile['username']
+    return profile
+        
 
 if __name__ == '__main__':  
     socketio.run(app, host  ='0.0.0.0', port=2994, ssl_context=('cert.pem', 'key.pem'))

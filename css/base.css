@@ -8,6 +8,8 @@
     --accent:          #8aad6e;
     --accent2:         #b5a96e;
     --cream:           #e8e2cc;
+    --moss:            #4a5d3a;
+    --amber:           #c9985a;
     --reacted-accent:  #b5a96e;
 
     /* kept for compat with existing js that may reference these */

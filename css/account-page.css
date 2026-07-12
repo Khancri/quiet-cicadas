@@ -1,0 +1,181 @@
+
+  #edit-profile {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 50;
+    width: 368px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    /* display: flex; */
+    flex-direction: column;
+    gap: .75rem;
+  }
+
+  #edit-profile h2 {
+    margin: 0 0 1.25rem 0;
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  .pfp-banner-edit .overlay-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.45);
+    color: var(--text);
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .pfp-banner-edit:hover .overlay-label {
+    opacity: 1;
+  }
+
+  .pfp-edit-wrap {
+    position: relative;
+    width: 30%;
+    height: auto;
+    margin: -32px auto auto;
+    cursor: pointer;
+  }
+
+  .pfp-edit-wrap img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--bg2);
+    display: block;
+  }
+
+  .pfp-edit-wrap .overlay-label {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.5);
+    color: var(--text);
+    font-size: 9px;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .pfp-edit-wrap:hover .overlay-label {
+    opacity: 1;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+  }
+
+  .field label {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .field input,
+  .field textarea,
+  .field select {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    padding: .4rem .5rem;
+    resize: none;
+  }
+
+  .field textarea {
+    height: 60px;
+  }
+
+  .field .char-count {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  .handle-pronouns {
+    display: flex;
+    gap: .5rem;
+  }
+  .handle-pronouns .field {
+    flex: 1;
+  }
+
+  .status-options {
+    display: flex;
+    gap: .4rem;
+  }
+
+  .status-dot-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .3rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-muted);
+    font-size: 10px;
+    padding: .3rem;
+    cursor: pointer;
+  }
+
+  .status-dot-btn.active {
+    color: var(--text);
+    border-color: var(--amber);
+  }
+
+  .status-dot-btn .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .dot.online { background: #7fae5a; }
+  .dot.idle { background: #c9985a; }
+  .dot.dnd { background: #a8453a; }
+  .dot.offline { background: #6b6b5f; }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .5rem;
+    margin-top: .25rem;
+  }
+
+  .btn {
+    font-family: inherit;
+    font-size: 12px;
+    padding: .4rem .8rem;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    background: var(--bg3);
+    color: var(--text-muted);
+  }
+
+  .btn.primary {
+    background: var(--moss);
+    color: var(--text);
+    border-color: var(--moss);
+  }
+  .btn.primary:hover {
+    background: color-mix(in srgb, var(--moss), #77777711);
+    border-color: color-mix(in srgb, var(--moss), #77777711);
+  }
+  .btn:hover {
+    background: color-mix(in srgb, var(--bg3), #77777711);
+    border-color: color-mix(in srgb, var(--border), #77777711);
+  }

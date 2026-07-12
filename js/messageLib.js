@@ -1,8 +1,9 @@
 import { getUsername } from "./userInfo.js";
 import { twemoji } from "./twemoji.js";
 import { updateSelectedMessageID } from "./chats.js";
+import { pfpValid, showProfileModal } from "./profiles.js";
 
-function createMessage(data, id, channel, socket) {
+async function createMessage(data, id, channel, socket) {
     var message = document.createElement('div');
         message.classList.add('message');
         const stripped = data['content'].replace(/\s/g, '');
@@ -16,8 +17,13 @@ function createMessage(data, id, channel, socket) {
         const pfp = document.createElement('div');
         pfp.classList.add('avatar');
         message.appendChild(pfp);
-        pfp.style.backgroundImage = `url('/pfp/${data.user}')`;
-        pfp.style.backgroundSize = 'cover';
+        const validation = await pfpValid(data.user)
+        if (validation[0] === false) {
+            pfp.appendChild(validation[1])
+        } else {
+            pfp.style.backgroundImage = `url(/pfp/${data.user})`;
+            pfp.style.backgroundSize = 'cover';
+        }
 
         const content = document.createElement('div');
         content.classList.add('content');
@@ -41,6 +47,18 @@ function createMessage(data, id, channel, socket) {
 
         const usernameEl = document.createElement('b');
         usernameEl.classList.add('username'); usernameEl.innerText = data.user;
+        usernameEl.onclick = async (e) => {
+            const { pageX: x, pageY: y } = event;
+            e.stopPropagation();
+            const prof = document.getElementById('profile')
+            const clickEvent = (e) => {
+                if (e.target.closest('#profile')) return;
+                prof.style.display = 'none';
+                document.removeEventListener('click', clickEvent);
+            };
+            await showProfileModal(data.user, clickEvent, {x, y}, socket)
+            document.addEventListener('click', clickEvent);
+    };
         const dataEl = document.createElement('span');
         const date = new Date(data.date);
         dataEl.classList.add('date'); dataEl.innerText =  date.toLocaleString();
@@ -106,7 +124,7 @@ function react(id, channel, emoji, user, action, socket, messageObj) {
 }
 
 
-function renderMessages(data, overwrite = false, channel, socket) {
+async function renderMessages(data, overwrite = false, channel, socket) {
     console.log(data)
     const sorted = Object.entries(data).sort((a, b) => new Date(a[1].date) - new Date(b[1].date));
     const div = document.getElementById('messages')
@@ -116,7 +134,7 @@ function renderMessages(data, overwrite = false, channel, socket) {
         console.log(sorted[i - 1])
         const message = document.querySelector(`[data-id="${key}"]`);
         if (message === null) {
-            const el = createMessage(value, key);
+            const el = await createMessage(value, key, channel, socket);
             const lastMessage = div.lastElementChild;
             const lastUser = lastMessage?.querySelector('.username')?.innerText;
 
@@ -184,7 +202,7 @@ function newChannel(channelName, callback) {
     addChannelToHistory(channelName)
 }
 
-function newDirectMessageChannel(user, callback) {
+async function newDirectMessageChannel(user, callback) {
     if (document.querySelector(`[data-user-data="${encodeURIComponent(`@${user}`)}"]`) !==null) {
         undoAllActiveChannels();
         document.querySelector(`[data-user-data="${encodeURIComponent(user)}"]`).classList.add('active');
@@ -193,7 +211,13 @@ function newDirectMessageChannel(user, callback) {
     undoAllActiveChannels();
     const channelRanking = document.querySelector('#t-userRanking').content.cloneNode(true);
     channelRanking.querySelector('span').innerText = user;
-    channelRanking.querySelector('img').src = `/pfp/${user}`
+    const valid = await pfpValid(user);
+    if (!valid[0]) {
+        channelRanking.querySelector('.avatar-sm').appendChild(valid[1])
+    } else {
+        channelRanking.querySelector('img').src = `/pfp/${user}`
+    }
+    
     channelRanking.querySelector('.channel-exit').onclick = () => closeChannel('@' + channelName)
     channelRanking.onclick = (e) => {
         if (e.closest('.channel-exit')) {

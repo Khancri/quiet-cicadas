@@ -14,7 +14,7 @@ export async function sendMessage(content, user, socket) {
         console.log(encrypted)
         socket.emit('dm', {to: user, payload: encrypted}, async (data) => {
             console.log(data)
-            renderMessages({[data.hash]: {'date': data.date, content: content, user: getUsername()}}, false, `@${user}`, socket)
+            await renderMessages({[data.hash]: {'date': data.date, content: content, user: getUsername()}}, false, `@${user}`, socket)
             saveMessages({[data.hash]: {'date': data.date, content: content, user: getUsername()}}, `@${user}`)
 
         })
