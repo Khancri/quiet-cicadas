@@ -1,3 +1,5 @@
+import eventlet
+eventlet.monkey_patch()
 from flask import Flask, jsonify, request, send_from_directory, session, send_file, redirect, abort
 from datetime import datetime
 from flask_cors import CORS
@@ -307,7 +309,7 @@ def updateProfile(data):
 def viewProfile(data):
     profile = load('profiles.json')[data['user']]
     del profile['key']; del profile['password']; del profile['username']
-    return profile
+    return profile  
         
 
 if __name__ == '__main__':  
