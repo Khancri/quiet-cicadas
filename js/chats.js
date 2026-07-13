@@ -56,8 +56,13 @@ async function fetchKey(channel) {
         socket.emit('keyupdate', {channel});
         keySearching = false;
     } else {
-        if (list.list === []) return;
-        console.log(list.list[0])
+        if (list.list.length === 0) {
+            // alert('no one online to give you key ;(');
+            document.getElementById('message-input').disabled = true;
+            document.getElementById('message-input').placeholder = 'channels locked';
+            keySearching = false;
+            return;
+        }
         socket.emit('request_key', {user: list.list[0], channel: channel})
     }
 
@@ -71,6 +76,8 @@ function getUserFromChannel() {
 
 var keySearching = false;
 async function regetKey() { 
+    document.getElementById('message-input').placeholder = 'say something...';
+    document.getElementById('message-input').disabled = false;
     if (channel.startsWith('@')) {
         
         const user = getUserFromChannel();
@@ -186,6 +193,8 @@ socket.on('request_key_complete', async (key_) => {
     key_ = await window.crypto.subtle.unwrapKey('raw', keyBuffer, privKey, {name: 'RSA-OAEP'}, {name: 'AES-GCM', length: 256}, true, ['encrypt', 'decrypt'])
     keySearching = false;
     db.saveKey(channel, key_);
+    socket.emit('keyupdate', 
+        {channel});
     key=key_;
 });
 

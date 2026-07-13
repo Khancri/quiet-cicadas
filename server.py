@@ -1,5 +1,5 @@
-import eventlet
-eventlet.monkey_patch()
+# import eventlet
+# eventlet.monkey_patch() 
 from flask import Flask, jsonify, request, send_from_directory, session, send_file, redirect, abort
 from datetime import datetime
 from flask_cors import CORS
@@ -240,11 +240,13 @@ def key_request(data):
 @socketio.on('request_key')
 def request_key(data): # data: user, channel
     print(data)
-    to_sid = user_sockets.get(data['user'], None)
-    if to_sid == None:
-        print('no user man sorry')
-    if to_sid:
-        socketio.emit('key_exchange', {'channel': data['channel'], 'user': session['username']}, to=to_sid)
+    if 'user' in data.keys():
+        to_sid = user_sockets.get(data['user'], None)
+        if to_sid == None: 
+            print('no user man sorry')
+        if to_sid:
+            socketio.emit('key_exchange', {'channel': data['channel'], 'user': session['username']}, to=to_sid)
+        
 
 @socketio.on('request_key_complete')
 def request_key_complete(data):

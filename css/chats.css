@@ -269,6 +269,9 @@ body {
     margin: 10px 14px 12px;
     width: calc(100% - 28px);
 }
+#message-input:disabled {
+    background: var(--bg);
+}
 #message-input::placeholder {
     color: var(--text-muted);
 }
