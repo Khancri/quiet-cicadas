@@ -1,8 +1,7 @@
-(A) 2026-07-09 make profiles due:2026-07-11 @htmlcssjs +vital
-
-x 2026-07-11 (A) add columns to users table (bio, banner_color, status, custom_status, created_at if not already there) @py
-x 2026-07-11 (B) backend routes - GET /profile/<user_id>, PATCH /profile (update own) @py
-(C) socket event - broadcast status changes to friends/channels @pyjs
-x 2026-07-11 (D) frontend - profile modal/popup component (click avatar → opens it) @htmlcssjs
-x 2026-07-11 (E) frontend - edit profile form (settings page probably) @htmlcssjs
-x 2026-07-11 (F) banner color picker or upload @htmlcssjs
+(A) 2026-07-13 fix key sharing + make key detection system due:2026-07-15 @feature +qolvital
+(A) 2026-07-13 notifications due:2026-07-15 @feature +vital
+(A) 2026-07-14 send notification if offline for key pair @feature +vital +notifications
+(B) 2026-07-13 servers due:2026-08-01 @htmlcssjs +vital
+(B) 2026-07-13 change password functionality @htmlcssjs +account
+(D) 2026-07-13 make customize profile modal update pfp according to account @bug
+x 2026-07-12 (A) 2026-07-09 make profiles due:2026-07-11 @feature +vital

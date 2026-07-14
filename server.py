@@ -1,9 +1,11 @@
 # import eventlet
 # eventlet.monkey_patch() 
+from pywebpush import webpush, WebPushException
 from flask import Flask, jsonify, request, send_from_directory, session, send_file, redirect, abort
 from datetime import datetime
 from flask_cors import CORS
 import flask_socketio
+import base64
 from flask_socketio import join_room, leave_room
 import uuid
 import emoji
@@ -82,6 +84,11 @@ def me():
         return jsonify({'ok': False})
     return jsonify({'username': session['username']})
 
+VAPID_PRIVATE_KEY = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQggBwlZDnZ2/91ru+/nTfm4TNYGzud9hpmc+zy110ET6mhRANCAARR59e12eymk1nCl1lJmzNt90xdhv4wXCxORL65jgFY55MX6Q/0bDlo247I2mSs+HYG3lhD0jg2UU3w2T9sfH39"
+VAPID_CLAIMS = {
+    "sub": "mailto:joeykhan0106@gmail.com"
+}
+
 @app.route('/login', methods=['POST'])
 def login():
     info = request.json
@@ -91,6 +98,51 @@ def login():
         session['username'] = username
         return jsonify({'ok': True})
     return jsonify({'ok': False})
+
+def send_push(subscription_info, title, body, url="/"):
+    try:
+        webpush(
+            subscription_info=subscription_info,
+            data=json.dumps({
+                "title": title,
+                "body": body,
+                "url": url
+            }),
+            vapid_private_key=VAPID_PRIVATE_KEY,
+            vapid_claims=VAPID_CLAIMS
+        )
+        print('hi')
+    except WebPushException as e:
+        print("push failed:", repr(e))
+
+def save_subscription(handle, data):
+    meow = load('subscriptions.json')
+    meow[handle] = data
+    save('subscriptions.json', meow)
+
+@app.route('/api/notificationKey')
+def notification_key():
+    der_key = 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUefXtdnsppNZwpdZSZszbfdMXYb+MFwsTkS+uY4BWOeTF+kP9Gw5aNuOyNpkrPh2Bt5YQ9I4NlFN8Nk/bHx9/Q=='
+    padded = der_key + '=' * (-len(der_key) % 4)
+    der_bytes = base64.urlsafe_b64decode(padded)
+
+    raw_point = der_bytes[-65:]  # strip DER header, keep raw point
+
+    raw_b64url = base64.urlsafe_b64encode(raw_point).rstrip(b'=').decode()
+    print(raw_b64url)
+    return jsonify({'key': raw_b64url})
+
+@app.route('/api/subscribe', methods=['POST'])
+def subscribe():
+    # return redirect('https://scrollx.org')
+    sub_data = request.get_json()
+    user_id = session.get('username')  # however you track the user
+        
+    # store sub_data as json, keyed to user_id
+    save_subscription(user_id, sub_data)
+    
+    return '', 201
+
 #region ErrorHandler
 @app.errorhandler(403)
 def unauthorized(e):
@@ -196,13 +248,13 @@ def unreact(data):
 
 @socketio.on('keyupdate')
 def update_key_list(data):
-    file = load(f'msg/{data['channel']}.json')
-    if not 'metadata' in file.keys():
-        file['metadata'] = {}
-    if not 'users' in file['metadata'].keys():
-        file['metadata']['users'] = [];
-    file['metadata']['users'].append(session['username'])
-    save(f'msg/{data['channel']}.json', file)
+    file = load('keys.json')
+    if not data['channel'] in file.keys():
+        file[data['channel']] = {}
+    if not 'users' in file[data['channel']].keys():
+        file[data['channel']]['users'] = [];
+    file[data['channel']]['users'].append(session['username'])
+    save('keys.json', file)
 
 @socketio.on('direct_message')
 def handle_direct_message(data):
@@ -213,12 +265,15 @@ def handle_direct_message(data):
     if to_sid:
         socketio.emit('direct_message', payload, to=to_sid)
 
+def findSID(handle):
+    if 'handle' in user_sockets.keys():
+        return user_sockets[handle]
+    return None
 
 @socketio.on('dm')
 def direct_message(data):
     to = data['to']
     payload = data['payload']
-    to_sid = user_sockets.get(to)
     hash = str(uuid.uuid4())
     date = datetime.now().isoformat()
     message_obj = {
@@ -226,7 +281,10 @@ def direct_message(data):
         'content': payload,
         'date': date,
     }
+    to_sid = findSID(to)
     print(message_obj)
+    if to_sid == None:
+        send_push(load('subscriptions.json')[to], f'Message from {session['username']}', 'Tap to read notification')
     if to_sid:
         socketio.emit('dm', {hash: message_obj}, to=to_sid)
         print('hi' + hash)
@@ -256,11 +314,11 @@ def request_key_complete(data):
 
 @socketio.on('channel_users')
 def get_users_with_key(data):
-    file = load(f'msg/{data['channel']}.json')
+    file = load('keys.json')
     print(file)
     if file == {}:
         return {'list': None}
-    users: list  = file['metadata']['users'] 
+    users: list  = file[data['channel']]['users'] 
     if users == None:
         return {'list': None}
     active = []

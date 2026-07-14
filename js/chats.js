@@ -68,6 +68,47 @@ async function fetchKey(channel) {
 
 }
 
+document.getElementById('allow-notifications').onclick = async () => {
+    const permission = await Notification.requestPermission();
+    await subscribeToPush();
+  if (permission === 'granted' || Notification.permission === 'granted') {
+  } else {
+    console.log('user said no lol');
+  }
+}
+// navigator.serviceWorker.register("file/js/sw.js")
+//   .then(reg => console.log('sw registered', reg))
+//   .catch(err => console.error('sw registration failed', err));
+
+
+async function subscribeToPush() {
+    const json = await fetch('/api/notificationKey')
+    var notifkey = (await (json).json()).key;
+    console.log(notifkey)
+    const reg = await navigator.serviceWorker.register("file/js/sw.js");
+    console.log('here')
+    notifkey = urlBase64ToUint8Array(notifkey);
+    alert(notifkey)
+    const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: notifkey
+    });
+    console.log(sub)
+
+    await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub)
+    });
+}
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
 function getUserFromChannel() {
     const list = channel.replace('@', '').split('-')
         list.splice(list.indexOf(getUsername()), 1); const user = list[0];
@@ -123,7 +164,7 @@ document.getElementById('customize-profile').onclick = async () => {
 }
 
 document.getElementById('logout').onclick = async () => {
-    const thing = await fetch('/logout', {method: 'POST'});
+    const thing = await fetch('logout', {method: 'POST'});
     await db.obliterate();
     alert('everything obliterated!')
 }
@@ -172,7 +213,7 @@ document.getElementById('pfp-file-input').onchange = async (e) => {
             cropper.getCroppedCanvas().toBlob(async (blob) => {
                 const formData = new FormData();
                 formData.append('pfp', blob, 'pfp.png');
-                const pfpUpload = await fetch('/pfp', {method: 'POST', body: formData});
+                const pfpUpload = await fetch('pfp', {method: 'POST', body: formData});
                 if (pfpUpload.status == 204) {
                     alert('uploaded!');
                     document.getElementById('corner-pfp').src = `/pfp/${getUsername()}` + "?t=" + new Date().getTime()
@@ -333,7 +374,7 @@ document.getElementById('direct-message').onclick = async () => {
     checkUser();
     // getMessages1();
 async function checkUser() {
-    const username = (await (await fetch('/me')).json()).username
+    const username = (await (await fetch('me')).json()).username
     const valid = await pfpValid(username)
     const cornerPfp = document.getElementById('corner-pfp');
     const oldAvatar = cornerPfp.querySelector('.ascii-avatar');
