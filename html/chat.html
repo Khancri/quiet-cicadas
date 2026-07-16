@@ -114,6 +114,7 @@
                 <button id="change-pfp">change pfp</button>
                 <input type="file" id="pfp-file-input" hidden>
                 <button id="customize-profile">customize profile</button>
+                <button id="feedback">feedback &#8599</button>
                 <button id="logout">logout</button>
             </div>
         </div>
@@ -143,7 +144,7 @@
         </div>
         <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
             <div id="channel-header">
-                <h1 id="channel-name"></h1><span style="color:var(--text-muted); font-size:11px;">end-to-end encrypted</span><button id="allow-notifications">allow notifs</button>
+                <div style="width: 100%; display: flex; flex-direction: row; justify-content: space-between;"><div style="display: flex; align-content: center; gap: 8px;"><h1 id="channel-name"></h1><span id="encryption-status">end-to-end encrypted</span></div></div><button id="allow-notifications">allow notifs</button>
             </div>
             <div class="messages" id="messages"></div>
             <div>

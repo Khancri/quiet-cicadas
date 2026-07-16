@@ -1,7 +1,5 @@
-profiles.json
-messages.json
 pfps/
-msg/
 *.pem
 svg/twemoji
-subscriptions.json
+*.xyz
+data/

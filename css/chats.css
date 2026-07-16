@@ -65,7 +65,7 @@ body {
     letter-spacing: .08em;
     text-transform: uppercase;
 }
-.sidebar button {
+.sidebar button, #allow-notifications {
     background: transparent;
     border: 1px dashed var(--border);
     border-radius: 6px;
@@ -78,7 +78,12 @@ body {
     cursor: pointer;
     text-transform: lowercase;
 }
-.sidebar button:hover {
+
+#allow-notifications {
+    text-wrap: nowrap;
+}
+
+.sidebar button:hover, #allow-notifications:hover {
     border-color: var(--accent);
     color: var(--accent);
 }
@@ -315,7 +320,7 @@ flex-shrink: 0;
 }
 
 @media (max-width: 600px) {
-    .sidebar-toggle-input { display: block; }
+    /* .sidebar-toggle-input { display: block; } */
 
     .hamburger {
         display: block;
@@ -545,3 +550,5 @@ flex-shrink: 0;
 .pfp-glow-wrap .ascii-avatar div {
     font-size: 40px;
 }
+
+#encryption-status {color:var(--text-muted); font-size:11px;}

@@ -9,6 +9,7 @@ import base64
 from flask_socketio import join_room, leave_room
 import uuid
 import emoji
+from secrets import token_urlsafe
 import bcrypt
 import json; import os;
 PROFILE_FILE = 'profiles.json'
@@ -18,6 +19,7 @@ socketio = flask_socketio.SocketIO(app, cors_allowed_origins="*")
 app.secret_key = 'R5m9SAXRxLwERafXLj5hqW4qru98NhWz'
 CORS(app)
 
+tokens = {}
 user_sockets = {}  # username → socket id
 rooms = {}
 
@@ -31,13 +33,15 @@ def getChannel(channel: str, username: str):
             return  f'@{channel}-{username}'
     return channel
 
-def load(file):
+def load(file: str):
+    file = 'data/' + file; file = file.replace('//', '/')
     if not os.path.exists(file):
         return {}
     with open(file) as f:
         return json.load(f)
 
 def save(file, todos):
+    file = 'data/' + file; file = file.replace('//', '/')
     with open(file, 'w') as f:
         json.dump(todos, f, indent=4)
 #endregion
@@ -99,14 +103,15 @@ def login():
         return jsonify({'ok': True})
     return jsonify({'ok': False})
 
-def send_push(subscription_info, title, body, url="/"):
+def send_push(username, title, body, url="/"):
+    subscription_info = load('subscriptions.json')[username]
     try:
         webpush(
             subscription_info=subscription_info,
             data=json.dumps({
                 "title": title,
                 "body": body,
-                "url": url
+                "url": url,
             }),
             vapid_private_key=VAPID_PRIVATE_KEY,
             vapid_claims=VAPID_CLAIMS
@@ -246,6 +251,16 @@ def unreact(data):
         'action': 'remove'
     }, to=data['channel']);
 
+@socketio.on('forgetkey')
+def forget_key(data):
+    file = load('keys.json')
+    if not data['channel'] in file.keys(): return
+    if not 'users' in file[data['channel']].keys(): return
+    l: list = file[data['channel']]['users']
+    file[data['channel']]['users'].pop(l.index(session['username']))
+    save('keys.json', file)
+    return {'ok': True}
+
 @socketio.on('keyupdate')
 def update_key_list(data):
     file = load('keys.json')
@@ -253,6 +268,7 @@ def update_key_list(data):
         file[data['channel']] = {}
     if not 'users' in file[data['channel']].keys():
         file[data['channel']]['users'] = [];
+    if session['username'] in file[data['channel']]['users']: return
     file[data['channel']]['users'].append(session['username'])
     save('keys.json', file)
 
@@ -284,7 +300,7 @@ def direct_message(data):
     to_sid = findSID(to)
     print(message_obj)
     if to_sid == None:
-        send_push(load('subscriptions.json')[to], f'Message from {session['username']}', 'Tap to read notification')
+        send_push(to, f'Message from {session['username']}', 'Tap to read notification')
     if to_sid:
         socketio.emit('dm', {hash: message_obj}, to=to_sid)
         print('hi' + hash)
@@ -293,7 +309,9 @@ def direct_message(data):
 @socketio.on('public_key_request')
 def key_request(data):
     user = data['user']
-    return load('profiles.json')[user]['key']
+    if user in load('profiles.json').keys():
+        return load('profiles.json')[user]['key']
+    return None
 
 @socketio.on('request_key')
 def request_key(data): # data: user, channel
@@ -318,6 +336,8 @@ def get_users_with_key(data):
     print(file)
     if file == {}:
         return {'list': None}
+    if not data['channel'] in file.keys():
+        return {'list': None}
     users: list  = file[data['channel']]['users'] 
     if users == None:
         return {'list': None}
@@ -325,9 +345,28 @@ def get_users_with_key(data):
     for user in users:
         if user in user_sockets.keys():
             active.append(user)
-            
+    
+    if len(list(active)) == 0:
+        for user in users:
+            current_token = token_urlsafe(24)
+            tokens[current_token] = {'hit': False, 'type': 'keypass', 'metadata': {'user': session['username'], 'channel': data['channel']}}
+            send_push(user, 'help out a fellow cicada?', 'share your key so they can chat!', f'/keypass?t={current_token}')
+
     return {'list': list(active)}
-typing = {}     
+typing = {}
+
+@app.route('/keypass')
+def keypass():
+    return send_from_directory('html', 'keypass.html')
+
+@app.route('/api/token/<string:token>')
+def process_token(token):
+    if (not token in tokens.keys()) or (tokens[token]['hit'] == True):
+        return '', 403
+    res = jsonify({'channel': tokens[token]['metadata']['channel'], 'user': tokens[token]['metadata']['user']})
+    del tokens[token]
+    return res
+
 @socketio.on('typing')
 def vhange_typing(data):
     global typing

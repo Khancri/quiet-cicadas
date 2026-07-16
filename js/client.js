@@ -22,6 +22,13 @@ document.getElementById('pfp-input').onchange = (e) => {
     };
 };
 
+const enterListener = (func) => {
+
+    if (e.key !== 'Enter') {
+
+    }
+}
+
 document.getElementById('username-submit').onclick = async () => {
     username = document.getElementById('username-input').value;
     if (cropper !== undefined) {
@@ -37,22 +44,33 @@ document.getElementById('username-submit').onclick = async () => {
             password = document.getElementById('password-input').value;
             logIn()
         }
+        document.getElementById('password-input').oninput = (e) => {
+            if (e.key !== 'Enter') return;
+            password = document.getElementById('password-input').value;
+            logIn();
+        }
     } else {
         document.getElementById('password-submit').onclick = async () => {
             password = document.getElementById('password-input').value;
             signUp()
+        }
+        document.getElementById('password-input').oninput = (e) => {
+            if (e.key !== 'Enter') return;
+            password = document.getElementById('password-input').value;
+            signUp();
         }
     }
     
     document.getElementById('username-slide').classList.add('dissolve-slide-out')
     document.getElementById('password-slide').classList.add('dissolve-slide-in')
     document.getElementById('portal').style.width = "360px";
+    document.getElementById('password-input').focus();
 };
 
 async function logIn() {
     const done = await fetch('/login', {method: 'POST', headers: {'Content-Type': 'application/json'}, 
         body: JSON.stringify({'username': username, 'password': password})});
-    if (done.status !== 200) {
+    if (!done.ok) {
         alert("we don't know if the passwords correct the shit crashed on us");
         return;
     }

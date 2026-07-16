@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>cicadas — relaying key</title>
+    <link rel="stylesheet" href="file/css/base.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            gap: 14px;
+        }
+        #status-text {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        #status-icon {
+            font-size: 2.5rem;
+            color: var(--accent);
+        }
+        .spin {
+            animation: spin 1.2s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="status-icon" class="spin">𓆗</div>
+    <p id="status-text">relaying key...</p>
+
+    <script type="module" defer>
+        import { getKey } from '/file/js/db.js';
+        import io from '/file/js/socketio.js';
+        const socket = io();
+        
+        function emitAsync(socket, event, data) {
+            return new Promise((resolve) => {
+                socket.emit(event, data, resolve)
+            })
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('t');
+        console.log(token)
+        const statusText = document.getElementById('status-text');
+        const statusIcon = document.getElementById('status-icon');
+
+        async function relay() {
+            if (!token) {
+                fail("no token provided");
+                return;
+            }
+
+            const res = await fetch(`/api/token/${encodeURIComponent(token)}`);
+            if (!res.ok) {
+                fail("this request expired or was already used");
+                return;
+            }
+
+            const { channel, user } = await res.json();
+
+
+            const requestedKey = await getKey(channel);
+            const key = await emitAsync(socket,'public_key_request', {user: user})
+            console.log('private key')
+            const keyBuffer = Uint8Array.from(atob(key), c => c.charCodeAt(0));
+            const publicKey = await crypto.subtle.importKey('spki', keyBuffer, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['wrapKey']);
+            const wrappedKey = await crypto.subtle.wrapKey('raw', requestedKey, publicKey, {name: 'RSA-OAEP'});
+            console.log('wrapped up!')
+            socket.emit('request_key_complete', {user: user, payload: btoa(String.fromCharCode(...new Uint8Array(wrappedKey)))})
+
+            succeed();
+        }
+
+        function succeed() {
+            statusIcon.classList.remove('spin');
+            statusIcon.textContent = '✓';
+            statusText.textContent = 'key sent';
+            setTimeout(() => window.close(), 1200);
+        }
+
+        function fail(msg) {
+            statusIcon.classList.remove('spin');
+            statusIcon.textContent = '✕';
+            statusText.textContent = msg;
+        }
+        setTimeout(() => relay(), 1500)
+    </script>
+</body>
+</html>

@@ -218,9 +218,10 @@ async function newDirectMessageChannel(user, callback) {
         channelRanking.querySelector('img').src = `/pfp/${user}`
     }
     
-    channelRanking.querySelector('.channel-exit').onclick = () => closeChannel('@' + channelName)
+    channelRanking.querySelector('.channel-exit').onclick = () => closeChannel('@' + user)
     channelRanking.onclick = (e) => {
         if (e.closest('.channel-exit')) {
+            // console.log('nun')
             return;
         }
         callback();

@@ -10,6 +10,8 @@ import { getUsername, updateInfo } from './userInfo.js';
 import { twemoji } from './twemoji.js';
 import * as db from './db.js'
 import { pfpValid } from './profiles.js';
+import { updateEncryptedInfo } from './ui.js';
+
 
 const socket = io();
 var key = null;
@@ -44,7 +46,8 @@ await regetKey();
 document.getElementById('messages').innerHTML = '';
 
 getMessages1();
-socket.emit("join", { room: channel });regetKey();
+socket.emit("join", { room: channel });
+regetKey();
 await messagesLib.renderMessages(daata, false, channel, socket);
 var selectedMessageID = null;
 
@@ -54,6 +57,7 @@ async function fetchKey(channel) {
         key = await cryptoAPI.createKey();
         db.saveKey(channel, key)
         socket.emit('keyupdate', {channel});
+        updateEncryptedInfo('end-to-end encrypted (AES-GCM)')
         keySearching = false;
     } else {
         if (list.list.length === 0) {
@@ -61,35 +65,54 @@ async function fetchKey(channel) {
             document.getElementById('message-input').disabled = true;
             document.getElementById('message-input').placeholder = 'channels locked';
             keySearching = false;
+            updateEncryptedInfo('channel encrypted (all keyholders offline)')
+            return;
+        }
+        if (list.list[0] === getUsername()) {
+            await emitAsync(socket, 'forgetkey', {channel: channel});
+            await fetchKey(channel)
             return;
         }
         socket.emit('request_key', {user: list.list[0], channel: channel})
     }
-
 }
 
 document.getElementById('allow-notifications').onclick = async () => {
+    console.log('notificatins')
     const permission = await Notification.requestPermission();
-    await subscribeToPush();
-  if (permission === 'granted' || Notification.permission === 'granted') {
-  } else {
-    console.log('user said no lol');
-  }
+    if (permission === 'granted' || Notification.permission === 'granted') {
+        subscribeToPush();
+    } else {
+        console.log('user said no lol');
+    }
 }
-// navigator.serviceWorker.register("file/js/sw.js")
+
+
 //   .then(reg => console.log('sw registered', reg))
 //   .catch(err => console.error('sw registration failed', err));
+
+document.getElementById('feedback').onclick = () => window.open('https://github.com/Khancri/quiet-cicadas/issues');
 
 
 async function subscribeToPush() {
     const json = await fetch('/api/notificationKey')
     var notifkey = (await (json).json()).key;
+    const serviceWorker_sw = await navigator.serviceWorker.register('file/js/sw.js')
+    // serviceWorker_sw.addEventListener('updatefound', () => {
+    //     const newWorker = reg.installing;
+    //     newWorker.addEventListener('statechange', () => {
+    //     // Check if the new service worker is installed and waiting
+    //     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+    //         // Prompt user to refresh, e.g., show a banner: "Update Available"
+    //         alert("New version available! Refresh to update.");
+    //     }
+    //     });
+    // });
+    
     console.log(notifkey)
-    const reg = await navigator.serviceWorker.register("file/js/sw.js");
     console.log('here')
     notifkey = urlBase64ToUint8Array(notifkey);
-    alert(notifkey)
-    const sub = await reg.pushManager.subscribe({
+    const sub = await serviceWorker_sw.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: notifkey
     });
@@ -120,14 +143,20 @@ async function regetKey() {
     document.getElementById('message-input').placeholder = 'say something...';
     document.getElementById('message-input').disabled = false;
     if (channel.startsWith('@')) {
-        
         const user = getUserFromChannel();
         console.log(`user: ${user}`)
         var key_ = await emitAsync(socket, 'public_key_request', {user})
+
+        if (key_ === undefined) {
+            updateEncryptedInfo('user doesn\'t exist');
+            return;
+        }
+        console.log(key_)
         key_ = Uint8Array.from(atob(key_), c => c.charCodeAt(0));
         key_ = await window.crypto.subtle.importKey('spki', key_, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['encrypt'])
         console.log(key_)
         key = key_
+        updateEncryptedInfo('end-to-encrypted (RSA)')
         return;
     }
     key_ = await db.getKey(channel)
@@ -135,20 +164,11 @@ async function regetKey() {
         fetchKey(channel);
         keySearching = true;
     } else {
+        updateEncryptedInfo('end-to-end encrypted (AES-GCM)')
         key = key_
     }
 }
 window.refreshKey = regetKey;
-    
-socket.on('key_exchange', async (data, callback) => {
-    const requestedKey = await db.getKey(data['channel']);
-    const key = await emitAsync(socket,'public_key_request', {user: data['user']})
-    const keyBuffer = Uint8Array.from(atob(key), c => c.charCodeAt(0));
-    const publicKey = await crypto.subtle.importKey('spki', keyBuffer, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['wrapKey']);
-    const wrappedKey = await crypto.subtle.wrapKey('raw', requestedKey, publicKey, {name: 'RSA-OAEP'});
-    console.log(callback)
-    socket.emit('request_key_complete', {user: data['user'], payload: btoa(String.fromCharCode(...new Uint8Array(wrappedKey)))});
-});
 
 document.getElementById('change-pfp').onclick = async () => {
     document.getElementById('pfp-file-input').click();
@@ -228,17 +248,6 @@ document.getElementById('pfp-file-input').onchange = async (e) => {
 
 
 
-socket.on('request_key_complete', async (key_) => {
-    const keyBuffer = Uint8Array.from(atob(key_), c => c.charCodeAt(0)).buffer;
-    const privKey = await db.retrievePrivateKey();
-    key_ = await window.crypto.subtle.unwrapKey('raw', keyBuffer, privKey, {name: 'RSA-OAEP'}, {name: 'AES-GCM', length: 256}, true, ['encrypt', 'decrypt'])
-    keySearching = false;
-    db.saveKey(channel, key_);
-    socket.emit('keyupdate', 
-        {channel});
-    key=key_;
-});
-
 const encryptOpts = {
     'group':  async (content, channel) => {
         const encrypted = await cryptoAPI.encryptMessage(content, key)
@@ -252,8 +261,6 @@ const encryptOpts = {
         RSA.sendMessage(content, user, socket)
     },
 }
-
-console.log('yeah he does')
 const messageInput = document.getElementById('message-input');
 var timeout;
 messageInput.addEventListener('keydown', async (e) => {
@@ -275,17 +282,7 @@ messageInput.addEventListener('keydown', async (e) => {
     }, 1500);
     socket.emit('typing', {channel: channel, prevEntered: false});
 });
-socket.on('typing', async (data) => {
-    const indicator = document.getElementById('typing-indicator');
-    if (data.length === 0) {
-        indicator.style.display = 'none';
-        return; 
-    } 
-    
-    indicator.style.display = 'block';
-    const span = indicator.querySelector('.user');
-    span.innerText = data.join(', ');
-})
+
 
 function renderChannelHistory(dmCallback, callback) {
     const history = messagesLib.getChannelHistory();
@@ -305,6 +302,7 @@ function renderChannelHistory(dmCallback, callback) {
 }
 
 async function changeMessageBox(channelName) {
+    updateEncryptedInfo('Finding brood metadata...')
     socket.emit('typing', {channel: channel, prevEntered: true})
     clearTimeout(timeout)
     document.getElementById('typing-indicator').style.display = 'none';
@@ -318,6 +316,7 @@ async function changeMessageBox(channelName) {
     if (channel.startsWith('@')) {
         const user = getUserFromChannel();
         console.log(`.sidebar .dm-item[data-user-data="${encodeURIComponent(user)}"]`)
+        if (document.querySelector(`[data-user-data="${encodeURIComponent(user)}"]`) === null) return;
         document.querySelector(`[data-user-data="${encodeURIComponent(user)}"]`).classList.add('active')
         document.getElementById('channel-name').innerText = `@${user}`
     } else {
@@ -403,37 +402,8 @@ async function getMessages1() {
     await messagesLib.renderMessages(data, false, channel, socket);
 }
 
-socket.on('new_message', async (message) => {
-    message[Object.keys(message)[0]].content = new TextDecoder().decode(await cryptoAPI.decryptMessage(message[Object.keys(message)[0]].content, message[Object.keys(message)[0]].iv, key))
-    await messagesLib.renderMessages(message, false, channel, socket); 
-    const messages = document.getElementById('messages');
-    await db.saveMessages(message, channel);
-    
-    messages.scrollTop = messages.scrollHeight;
-});
 
 
-
-
-socket.on('dm', async (message) => {
-    console.log(message)
-    const obj = message[Object.keys(message)[0]];
-    const privKey = await db.retrievePrivateKey();
-    obj.content = new TextDecoder().decode(await RSA.receiveMessage(obj.content, privKey))
-    if (channel === getDMChannelName(obj['user'])){
-        await messagesLib.renderMessages(message, false, channel, socket); 
-    }
-    await db.saveMessages(message, `${channel}`);
-    
-    const messages = document.getElementById('messages');
-    messages.scrollTop = messages.scrollHeight;
-});
-
-socket.on('message_reacted', (data) => {
-    console.log(data)
-    messagesLib.react(data['id'], channel, data['reaction'], data['user'], data['action'], socket);
-    db.updateReactions(data['id'], data['reaction'], data['user'], channel)
-})
 
 document.querySelector('.hamburger').onclick = () => {
     document.querySelector('.sidebar').style.transform = 'none';
@@ -457,6 +427,75 @@ document.querySelector('.emoji-context').addEventListener('click', () => {
     socket.emit('react', {id: selectedMessageID, reaction: prompt('emoji? '), channel: channel})
 })
 
+
+function emitAsync(socket, event, data) {
+  return new Promise((resolve) => {
+    socket.emit(event, data, resolve)
+  })
+}
+
+socket.on('key_exchange', async (data, callback) => {
+    const requestedKey = await db.getKey(data['channel']);
+    const key = await emitAsync(socket,'public_key_request', {user: data['user']})
+    const keyBuffer = Uint8Array.from(atob(key), c => c.charCodeAt(0));
+    const publicKey = await crypto.subtle.importKey('spki', keyBuffer, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['wrapKey']);
+    const wrappedKey = await crypto.subtle.wrapKey('raw', requestedKey, publicKey, {name: 'RSA-OAEP'});
+    console.log(callback)
+    socket.emit('request_key_complete', {user: data['user'], payload: btoa(String.fromCharCode(...new Uint8Array(wrappedKey)))});
+});    
+
+socket.on('request_key_complete', async (key_) => {
+    const keyBuffer = Uint8Array.from(atob(key_), c => c.charCodeAt(0)).buffer;
+    const privKey = await db.retrievePrivateKey();
+    key_ = await window.crypto.subtle.unwrapKey('raw', keyBuffer, privKey, {name: 'RSA-OAEP'}, {name: 'AES-GCM', length: 256}, true, ['encrypt', 'decrypt'])
+    keySearching = false;
+    db.saveKey(channel, key_);
+    socket.emit('keyupdate', {channel});
+    key=key_;
+    updateEncryptedInfo('end-to-end encrypted (AES-GCM)')
+});
+
+socket.on('typing', async (data) => {
+    const indicator = document.getElementById('typing-indicator');
+    if (data.length === 0) {
+        indicator.style.display = 'none';
+        return; 
+    } 
+    
+    indicator.style.display = 'block';
+    const span = indicator.querySelector('.user');
+    span.innerText = data.join(', ');
+})
+
+socket.on('new_message', async (message) => {
+    message[Object.keys(message)[0]].content = new TextDecoder().decode(await cryptoAPI.decryptMessage(message[Object.keys(message)[0]].content, message[Object.keys(message)[0]].iv, key))
+    await messagesLib.renderMessages(message, false, channel, socket); 
+    const messages = document.getElementById('messages');
+    await db.saveMessages(message, channel);
+    
+    messages.scrollTop = messages.scrollHeight;
+});
+
+socket.on('dm', async (message) => {
+    console.log(message)
+    const obj = message[Object.keys(message)[0]];
+    const privKey = await db.retrievePrivateKey();
+    obj.content = new TextDecoder().decode(await RSA.receiveMessage(obj.content, privKey))
+    if (channel === getDMChannelName(obj['user'])){
+        await messagesLib.renderMessages(message, false, channel, socket); 
+    }
+    await db.saveMessages(message, `${channel}`);
+    
+    const messages = document.getElementById('messages');
+    messages.scrollTop = messages.scrollHeight;
+});
+
+socket.on('message_reacted', (data) => {
+    console.log(data)
+    messagesLib.react(data['id'], channel, data['reaction'], data['user'], data['action'], socket);
+    db.updateReactions(data['id'], data['reaction'], data['user'], channel)
+})
+
 socket.on('direct_message', async (data) => {
     const privKey = await db.retrievePrivateKey();
     if (privKey === null) {alert('NOOOO TRUMP'); return;}
@@ -464,8 +503,13 @@ socket.on('direct_message', async (data) => {
     alert(new TextDecoder().decode(decrypted));
 })
 
-function emitAsync(socket, event, data) {
-  return new Promise((resolve) => {
-    socket.emit(event, data, resolve)
-  })
+if (new URLSearchParams(window.location.search).get('k') !== null) {
+    const channel = new URLSearchParams(window.location.search).get('k');
+    const user = new URLSearchParams(window.location.search).get('u');
+    const requestedKey = await db.getKey(channel);
+    const key = await emitAsync(socket,'public_key_request', {user: user})
+    const keyBuffer = Uint8Array.from(atob(key), c => c.charCodeAt(0));
+    const publicKey = await crypto.subtle.importKey('spki', keyBuffer, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['wrapKey']);
+    const wrappedKey = await crypto.subtle.wrapKey('raw', requestedKey, publicKey, {name: 'RSA-OAEP'});
+    socket.emit('request_key_complete', {user: user, payload: btoa(String.fromCharCode(...new Uint8Array(wrappedKey)))});
 }
