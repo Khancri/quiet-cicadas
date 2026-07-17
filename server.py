@@ -150,12 +150,28 @@ def subscribe():
 
 #region ErrorHandler
 @app.errorhandler(403)
-def unauthorized(e):
-    return send_from_directory('html', '403.html'), 403
+def forbidden(e):
+    return redirect('/403')
 
 @app.errorhandler(404)
 def not_found(e):
-    return send_from_directory('html', '404.html'), 404
+    return redirect('/404')
+
+@app.errorhandler(401)
+def unauthorized(e):
+    return redirect('/401')    
+
+@app.route('/404')
+def route404():
+    return send_from_directory('html', '404.html')
+
+@app.route('/403')
+def route403():
+    return send_from_directory('html', '403.html')
+
+@app.route('/401')
+def route401():
+    return send_from_directory('html', '401.html')
 #endregion
 @app.route('/logout', methods=['POST'])
 def logout():
@@ -412,4 +428,4 @@ def viewProfile(data):
         
 
 if __name__ == '__main__':  
-    socketio.run(app, host  ='0.0.0.0', port=2994, ssl_context=('cert.pem', 'key.pem'))
+    socketio.run(app, host  ='0.0.0.0', port=443, ssl_context=('cert.pem', 'key.pem'))
