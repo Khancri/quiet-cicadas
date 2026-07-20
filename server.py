@@ -5,6 +5,7 @@ from flask import Flask, jsonify, request, send_from_directory, session, send_fi
 from datetime import datetime
 from flask_cors import CORS
 import flask_socketio
+import hashlib
 import base64
 from flask_socketio import join_room, leave_room
 import uuid
@@ -44,6 +45,53 @@ def save(file, todos):
     file = 'data/' + file; file = file.replace('//', '/')
     with open(file, 'w') as f:
         json.dump(todos, f, indent=4)
+
+def saveToCache(type, data, person, id, channel):
+    if type == 'msg':
+        iv: bytes = data['iv']
+        ivHash = hashlib.sha1(iv).hexdigest()
+        data['iv'] = ivHash
+        with open(f'data/bin/{ivHash}', 'wb+') as f:
+            f.write(iv)
+            f.close()
+    content: bytes = data['content']
+    
+    contentHash = hashlib.sha256(content).hexdigest()
+    
+    with open(f'data/bin/{contentHash}', 'wb+') as f:
+        f.write(content)
+        f.close()
+    
+    store = load(f'store_{person}.json')
+    data['content'] = contentHash
+    data['channel'] = channel
+    store[id] = data
+    save(f'store_{person}.json', store)
+        
+
+def loadWholeCache(person):
+    store = load(f'store_{person}.json')
+    if store == {}: return {}
+    end = {}
+    for key, value in store.items():
+        iv_bytes = None
+        if 'iv' in value.keys():
+            iv_path = f"data/bin/{value['iv']}"
+            with open(iv_path, 'rb') as f:
+                iv_bytes = f.read()
+            os.remove(iv_path)
+        content_path = f"data/bin/{value['content']}"
+
+        with open(content_path, 'rb') as f:
+            content_bytes = f.read()
+
+        os.remove(content_path)
+
+        end[key] = {**value, 'iv': iv_bytes, 'content': content_bytes}
+    os.remove(f'data/store_{person}.json')
+    return end
+
+
 #endregion
 
 #region HTML Endpoints
@@ -104,6 +152,8 @@ def login():
     return jsonify({'ok': False})
 
 def send_push(username, title, body, url="/"):
+    if not username in load('subscriptions.json').keys():
+        return
     subscription_info = load('subscriptions.json')[username]
     try:
         webpush(
@@ -238,8 +288,13 @@ def post_message(data):
         'iv': data['iv'],
         'date': datetime.now().isoformat(),
     }
-    socketio.emit('new_message', {hash: message_obj}, to=data['channel'])
-
+    people = load('keys.json')[data['channel']]['users']
+    for person in people:
+        if person in user_sockets.keys():
+            socketio.emit('new_message', {hash: message_obj}, to=user_sockets[person])
+            continue
+        saveToCache('msg', message_obj, person, hash, data['channel'])
+        
 @socketio.on('react')
 def react(data): # {channel, id, reaction}
     if not emoji.is_emoji(data['reaction']):
@@ -288,6 +343,10 @@ def update_key_list(data):
     file[data['channel']]['users'].append(session['username'])
     save('keys.json', file)
 
+@socketio.on('cachegrab')
+def cacheGrab(a):
+    return loadWholeCache(session['username'])
+
 @socketio.on('direct_message')
 def handle_direct_message(data):
     to_username = data['to']
@@ -296,6 +355,7 @@ def handle_direct_message(data):
     to_sid = user_sockets.get(to_username)
     if to_sid:
         socketio.emit('direct_message', payload, to=to_sid)
+        return
 
 def findSID(handle):
     if 'handle' in user_sockets.keys():
@@ -316,7 +376,9 @@ def direct_message(data):
     to_sid = findSID(to)
     print(message_obj)
     if to_sid == None:
+        saveToCache('dmsg', message_obj, to, hash, getChannel(f'@{to}', session['username']))
         send_push(to, f'Message from {session['username']}', 'Tap to read notification')
+        return {'hash': hash, 'date': date}
     if to_sid:
         socketio.emit('dm', {hash: message_obj}, to=to_sid)
         print('hi' + hash)

@@ -35,7 +35,7 @@ const daata = {
         }
     }
 }
-
+await cacheCheck();
 var channel = 'general'
 renderChannelHistory(); 
 messagesLib.newChannel(channel, async () => {
@@ -50,6 +50,27 @@ socket.emit("join", { room: channel });
 regetKey();
 await messagesLib.renderMessages(daata, false, channel, socket);
 var selectedMessageID = null;
+
+async function cacheCheck() {
+    updateEncryptedInfo('Grabbing Cache..')
+    const cache = await emitAsync(socket, 'cachegrab')
+    console.log(cache);
+    for (const [id, value] of Object.entries(cache)) {
+        var channel;
+        if (value.iv === null) {
+            value.content = new TextDecoder().decode(await RSA.receiveMessage(value.content, await db.retrievePrivateKey()))
+            channel = value.channel.replace('@', '').replace(getUsername(), '').replace('-', '');
+        } else {
+            console.log(value);
+            channel = value.channel
+            value.content = new TextDecoder().decode(await cryptoAPI.decryptMessage(value.content, value.iv, await db.getKey(channel)))
+        }
+
+        console.log(value.channel)
+        await db.saveMessages({[id]:value}, value.channel)
+    }
+    updateEncryptedInfo('Complete!')
+}
 
 async function fetchKey(channel) {
     const list = await emitAsync(socket, 'channel_users', {channel})
@@ -151,10 +172,8 @@ async function regetKey() {
             updateEncryptedInfo('user doesn\'t exist');
             return;
         }
-        console.log(key_)
         key_ = Uint8Array.from(atob(key_), c => c.charCodeAt(0));
         key_ = await window.crypto.subtle.importKey('spki', key_, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['encrypt'])
-        console.log(key_)
         key = key_
         updateEncryptedInfo('end-to-encrypted (RSA)')
         return;
@@ -329,8 +348,8 @@ async function changeMessageBox(channelName) {
 
     document.getElementById('messages').innerHTML = '';
 
-    getMessages1();
     console.log(channel)
+    await getMessages1();
     socket.emit("join", { room: channel });
 }
 document.getElementById('add-new-dm').addEventListener('click', async () => {
@@ -398,6 +417,7 @@ document.getElementById('current-user-username').onclick = async (e) => {
 };
 async function getMessages1() {
     var data = await db.getMessages(channel);
+    console.log(data)
     if (!data || Object.keys(data).length === 0) return;
     await messagesLib.renderMessages(data, false, channel, socket);
 }
