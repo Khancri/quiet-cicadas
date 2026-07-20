@@ -358,7 +358,7 @@ def handle_direct_message(data):
         return
 
 def findSID(handle):
-    if 'handle' in user_sockets.keys():
+    if handle in user_sockets.keys():
         return user_sockets[handle]
     return None
 
@@ -374,7 +374,7 @@ def direct_message(data):
         'date': date,
     }
     to_sid = findSID(to)
-    print(message_obj)
+    # print(message_obj)
     if to_sid == None:
         saveToCache('dmsg', message_obj, to, hash, getChannel(f'@{to}', session['username']))
         send_push(to, f'Message from {session['username']}', 'Tap to read notification')
