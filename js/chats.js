@@ -277,7 +277,7 @@ const encryptOpts = {
         });
     },
     'dm': async (content, user, socket) => {
-        RSA.sendMessage(content, user, socket)
+        return await RSA.sendMessage(content, user, socket)
     },
 }
 const messageInput = document.getElementById('message-input');
@@ -287,7 +287,10 @@ messageInput.addEventListener('keydown', async (e) => {
         if (messageInput.value.trim() == '') return;
         if (channel.startsWith('@')) {
             const user = getUserFromChannel();
-            await encryptOpts['dm'](messageInput.value.trim(), user, socket);
+            console.log(channel)
+            const data = await encryptOpts['dm'](messageInput.value.trim(), user, socket);
+            await messagesLib.renderMessages({[data.hash]: {'date': data.date, content: messageInput.value.trim(), user: getUsername()}}, false, `@${user}`, socket)
+            await db.saveMessages({[data.hash]: {'date': data.date, content: messageInput.value.trim(), user: getUsername()}}, channel)
         } else {
             await encryptOpts['group'](messageInput.value.trim(), channel);
         }
@@ -491,7 +494,7 @@ socket.on('new_message', async (message) => {
     message[Object.keys(message)[0]].content = new TextDecoder().decode(await cryptoAPI.decryptMessage(message[Object.keys(message)[0]].content, message[Object.keys(message)[0]].iv, key))
     await messagesLib.renderMessages(message, false, channel, socket); 
     const messages = document.getElementById('messages');
-    await db.saveMessages(message, channel);
+    await db.saveMessages(message, getDMChannelName(channel.replace('@', '')));
     
     messages.scrollTop = messages.scrollHeight;
 });

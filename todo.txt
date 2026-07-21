@@ -1,5 +1,6 @@
-(B) 2026-07-17 files due:2026-07-22 @htmlcssjs +chat
-(B) 2026-07-17 custom stickers and emojis @htmlcssjs +chat
-(B) 2026-07-13 change password functionality @htmlcssjs +account
-(C) 2026-07-13 servers due:2026-08-01 @htmlcssjs +vital
+(C) 2026-07-13 change password functionality @htmlcssjs +account
+(C) 2026-07-17 files due:2026-07-22 @htmlcssjs +chat
+(D) 2026-07-17 custom stickers and emojis @htmlcssjs +chat
 (D) 2026-07-13 make customize profile modal update pfp according to account @bug
+(Z) 2026-07-13 servers due:2026-08-01 @htmlcssjs +vital
+x (B) 2026-07-20 messages sent in dm by user wont be stored on sending users client @bug +chat
