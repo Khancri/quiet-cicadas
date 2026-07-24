@@ -1,6 +1,8 @@
-(C) 2026-07-13 change password functionality @htmlcssjs +account
-(C) 2026-07-17 files due:2026-07-22 @htmlcssjs +chat
+x 2026-07-22 (A) 2026-07-22 organize chats.js due:2026-07-22 @js +organization +devx
+(C) 2026-07-17 files due:2026-07-22 ext:2026-07-23 @htmlcssjs +chat
 (D) 2026-07-17 custom stickers and emojis @htmlcssjs +chat
-(D) 2026-07-13 make customize profile modal update pfp according to account @bug
 (Z) 2026-07-13 servers due:2026-08-01 @htmlcssjs +vital
-x (B) 2026-07-20 messages sent in dm by user wont be stored on sending users client @bug +chat
+x 2026-07-20 (A) 2026-07-20 ADD DELETE PROFILE OPTION @vital +account
+x 2026-07-20 (B) 2026-07-20 messages sent in dm by user wont be stored on sending users client @bug +chat
+x 2026-07-20 (D) 2026-07-13 make customize profile modal update pfp according to account @bug
+x 2026-07-13 (C) 2026-07-13 change password functionality @htmlcssjs +account

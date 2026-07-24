@@ -46,6 +46,33 @@ def save(file, todos):
     with open(file, 'w') as f:
         json.dump(todos, f, indent=4)
 
+def save_attachment(file_bytes, recipients, id, filename, mime_type, iv):
+    path = f'data/attachments/{id}'
+    with open(path, 'wb') as f:
+        f.write(file_bytes)
+    meta = load('attachments.json')
+    meta[id] = {
+        'pending': recipients,
+        'fileName': filename,
+        'mime_type': mime_type,
+        'iv': iv
+    }
+    save('attachments.json', meta)
+
+def claim_attachment(id, username):
+    meta = load('attachments.json')
+    if id not in meta or username not in meta[id]['pending']:
+        return None
+    path = f'data/attachments/{id}'
+    with open(path, 'rb') as f:
+        data = f.read()
+    meta[id]['pending'].remove(username)
+    if not meta[id]['pending']:
+        os.remove(path)
+        del meta[id]
+    save('attachments.json', meta)
+    return data
+
 def saveToCache(type, data, person, id, channel):
     if type == 'msg':
         iv: bytes = data['iv']
@@ -130,6 +157,34 @@ def upload_pfp():
     file.save(f'pfps/{session['username']}')
     return '', 204
 
+@app.route('/api/upload', methods=['POST'])
+def upload_file():
+    file = request.files['file']
+    iv = request.form['iv']
+    mime_type = request.form['mimeType']
+    filename = request.form['fileName']
+    channel = request.form['channel']
+    users = load('keys.json')[channel]['users']
+    users.pop(users.index(session['username']))
+    content = file.read()
+    hash = hashlib.sha256(content).hexdigest()
+    save_attachment(content, users, hash, filename, mime_type, iv)
+    print(f'iv is {iv}')
+
+    return jsonify({'id': hash})
+
+@app.route('/api/attachment/<string:hash>')
+def get_attachment(hash):
+    data = claim_attachment(hash, session['username'])
+    if data is None:
+        return '', 404
+    return data, 200, {'Content-Type': 'application/octet-stream'}
+
+@app.route('/api/attachment-metadata/<string:hash>')
+def get_attachment_metadata(hash):
+    data = load('attachments.json')[hash]
+    return jsonify(data), 200
+
 @app.route('/me')
 def me():
     if 'username' not in session:
@@ -201,15 +256,24 @@ def subscribe():
 #region ErrorHandler
 @app.errorhandler(403)
 def forbidden(e):
-    return redirect('/403')
+    if request.accept_mimetypes.accept_html and not request.accept_mimetypes.accept_json:
+        # It's highly likely a browser requesting a web page
+        return redirect('/403')
+    return '', 403
 
 @app.errorhandler(404)
 def not_found(e):
-    return redirect('/404')
+    if request.accept_mimetypes.accept_html and not request.accept_mimetypes.accept_json:
+        # It's highly likely a browser requesting a web page
+        return redirect('/404')
+    return '', 404
 
 @app.errorhandler(401)
 def unauthorized(e):
-    return redirect('/401')    
+    if request.accept_mimetypes.accept_html and not request.accept_mimetypes.accept_json:
+        # It's highly likely a browser requesting a web page
+        return redirect('/401')
+    return '', 401    
 
 @app.route('/404')
 def route404():
@@ -228,6 +292,14 @@ def logout():
     session.clear()
     return '', 204
 
+@app.route('/delete-account')
+def delete_account():
+    profiles = load('profiles.json')
+    del profiles[session['username']]
+    save('profiles.json', profiles)
+    session.clear()
+    return '', 200
+
 @app.route('/signup', methods=['POST'])
 def signup():
     info = request.json
@@ -238,7 +310,7 @@ def signup():
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
     key = info['publicKey']
     print(key)
-    profileObj = {'username': username, 'password': hashed.decode(), 'key': key, 'displayName': username}
+    profileObj = {'username': username, 'password': hashed.decode(), 'key': key, 'displayName': username, 'dateCreated': datetime.now().isoformat()}
     file = load('profiles.json')
     file[username] = profileObj
     save('profiles.json' , file)
@@ -288,6 +360,9 @@ def post_message(data):
         'iv': data['iv'],
         'date': datetime.now().isoformat(),
     }
+    if 'attachments' in data.keys():
+        message_obj['attachmentId'] = data['attachments'][0]
+    
     people = load('keys.json')[data['channel']]['users']
     for person in people:
         if person in user_sockets.keys():

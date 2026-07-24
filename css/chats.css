@@ -552,3 +552,78 @@ flex-shrink: 0;
 }
 
 #encryption-status {color:var(--text-muted); font-size:11px;}
+
+#attach-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 6px 9px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+#attach-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+#attachment-preview {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 14px 6px;
+    padding: 4px 8px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    width: fit-content;
+}
+#attachment-preview .remove {
+    cursor: pointer;
+    color: var(--text-muted);
+}
+#attachment-preview .remove:hover {
+    color: lightcoral;
+}
+[hidden] {
+    display: none !important;
+}
+
+.attachment {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    padding: 6px 10px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: fit-content;
+}
+.attachment:hover {
+    border-color: var(--accent);
+    color: var(--text);
+}
+.attachment.disabled {
+    background: var(--bg);
+    cursor: default;
+}
+.attachment.disabled:hover {
+    border-color: var(--border);
+    color: var(--text-muted);
+}
+.attachment-icon {
+    font-size: 13px;
+}
+.attachment-name {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

@@ -11,7 +11,7 @@ export async function showProfileModal(username, clickEvent, position, socket) {
     prof.style.top = `${position.y}px`
     prof.style.left = `${position.x}px`
     prof.querySelector('#modal-username').style.textTransform = 'capitalize';
-    prof.querySelector('#modal-username').innerText = username;
+    prof.querySelector('#modal-username').innerText = data.displayName;
     prof.querySelector('.handle').innerText = username;
     const valid = await pfpValid(username)
     const glowWrap = prof.querySelector('.pfp-glow-wrap');
@@ -43,7 +43,7 @@ export async function showProfileModal(username, clickEvent, position, socket) {
     }
     if (Object.keys(data).includes('dateCreated')) {
         prof.querySelector('.date-created').style.display = 'flex';
-        prof.querySelector('.date-created .a84r').innerText = new Date(data.dateCreated).toLocaleDateString();
+        prof.querySelector('.date-created .date-created-info').innerText = new Date(data.dateCreated).toLocaleDateString();
     } else {
         prof.querySelector('.date-created').style.display = 'none';
     }
@@ -75,4 +75,34 @@ export async function pfpValid(username) {
         return [false, await generateAvatar(username)];
     }
     return [true]
+}
+
+
+export async function generateAvatarCanvas(username, size = 200) {
+    const bytes = new Uint8Array(
+        await crypto.subtle.digest("SHA-256", new TextEncoder().encode(username.toLowerCase().trim()))
+    );
+
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#141814';
+    ctx.fillRect(0, 0, size, size);
+
+    const cell = size / 4;
+    ctx.font = `${cell * 0.6}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fontWeight = 'bold';
+
+    for (let i = 0; i < 16; i++) {
+        const row = Math.floor(i / 4);
+        const col = i % 4;
+        ctx.fillStyle = PALETTE[bytes[i + 16] % PALETTE.length];
+        ctx.fillText(POOL[bytes[i] % POOL.length], col * cell + cell / 2, row * cell + cell / 2);
+    }
+
+    return canvas;
 }

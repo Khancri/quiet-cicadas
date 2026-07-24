@@ -1,80 +1,119 @@
 import { getUsername } from "./userInfo.js";
 import { twemoji } from "./twemoji.js";
-import { updateSelectedMessageID } from "./chats.js";
+import * as states from './state.js'
 import { pfpValid, showProfileModal } from "./profiles.js";
+import { decryptMessage } from "./crypto.js";
 
 async function createMessage(data, id, channel, socket) {
     var message = document.createElement('div');
-        message.classList.add('message');
-        const stripped = data['content'].replace(/\s/g, '');
-  
-        const isEmoji = /^\p{Emoji}+$/u.test(stripped);
-        if (isEmoji) {
-            message.classList.add('emoji-message');
-        }
-        message.dataset.id = id;
-        
-        const pfp = document.createElement('div');
-        pfp.classList.add('avatar');
-        message.appendChild(pfp);
-        const validation = await pfpValid(data.user)
-        if (validation[0] === false) {
-            pfp.appendChild(validation[1])
-        } else {
-            pfp.style.backgroundImage = `url(/pfp/${data.user})`;
-            pfp.style.backgroundSize = 'cover';
-        }
+    message.classList.add('message');
+    const stripped = data['content'].replace(/\s/g, '');
 
-        const content = document.createElement('div');
-        content.classList.add('content');
-        message.appendChild(content);
-        message.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            updateSelectedMessageID(id);
-            const menu = document.getElementById('context')
-            menu.style.display = 'flex';
-            const { pageX: x, pageY: y } = event;
-            menu.style.top = `${y}px`
-            menu.style.left = `${x}px`
-            const thing = document.addEventListener('click', () => {
-                menu.style.display = 'none';
-            }, {once: true})
-        })
+    const isEmoji = /^\p{Emoji}+$/u.test(stripped);
+    if (isEmoji) {
+        message.classList.add('emoji-message');
+    }
+    message.dataset.id = id;
+    
+    const pfp = document.createElement('div');
+    pfp.classList.add('avatar');
+    message.appendChild(pfp);
+    pfp.style.backgroundImage = `url(/pfp/${data.user})`;
+    pfp.style.backgroundSize = 'cover';
 
-        const metadata = document.createElement('div');
-        metadata.classList.add('metadata');
-        content.appendChild(metadata);
+    const content = document.createElement('div');
+    content.classList.add('content');
+    message.appendChild(content);
+    message.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        states.setSelectedMessageID(id);
+        const menu = document.getElementById('context')
+        menu.style.display = 'flex';
+        const { pageX: x, pageY: y } = event;
+        menu.style.top = `${y}px`
+        menu.style.left = `${x}px`
+        const thing = document.addEventListener('click', () => {
+            menu.style.display = 'none';
+        }, {once: true})
+    })
 
-        const usernameEl = document.createElement('b');
-        usernameEl.classList.add('username'); usernameEl.innerText = data.user;
-        usernameEl.onclick = async (e) => {
-            const { pageX: x, pageY: y } = event;
-            e.stopPropagation();
-            const prof = document.getElementById('profile')
-            const clickEvent = (e) => {
-                if (e.target.closest('#profile')) return;
-                prof.style.display = 'none';
-                document.removeEventListener('click', clickEvent);
-            };
-            await showProfileModal(data.user, clickEvent, {x, y}, socket)
-            document.addEventListener('click', clickEvent);
+    const metadata = document.createElement('div');
+    metadata.classList.add('metadata');
+    content.appendChild(metadata);
+
+    const usernameEl = document.createElement('b');
+    usernameEl.classList.add('username'); usernameEl.innerText = data.user;
+    usernameEl.onclick = async (e) => {
+        const { pageX: x, pageY: y } = event;
+        e.stopPropagation();
+        const prof = document.getElementById('profile')
+        const clickEvent = (e) => {
+            if (e.target.closest('#profile')) return;
+            prof.style.display = 'none';
+            document.removeEventListener('click', clickEvent);
+        };
+        await showProfileModal(data.user, clickEvent, {x, y}, socket)
+        document.addEventListener('click', clickEvent);
     };
-        const dataEl = document.createElement('span');
-        const date = new Date(data.date);
-        dataEl.classList.add('date'); dataEl.innerText =  date.toLocaleString();
-        metadata.appendChild(usernameEl); metadata.appendChild(dataEl);
+    const dataEl = document.createElement('span');
+    const date = new Date(data.date);
+    dataEl.classList.add('date'); dataEl.innerText =  date.toLocaleString();
+    metadata.appendChild(usernameEl); metadata.appendChild(dataEl);
 
-        const messageContent = document.createElement('span');
-        messageContent.classList.add('messageContent'); messageContent.innerText = data.content;
-        content.appendChild(messageContent);
+    const messageContent = document.createElement('span');
+    messageContent.classList.add('messageContent'); messageContent.innerText = data.content;
+    content.appendChild(messageContent);
 
-        const reactionRow = document.createElement('div');
-        reactionRow.className = 'reaction-row';
-        content.appendChild(reactionRow);
-        message = twemoji.parse(message);
-        return message;
+    const reactionRow = document.createElement('div');
+    reactionRow.className = 'reaction-row';
+    content.appendChild(reactionRow);
+
+
+    if (data.attachmentId) {
+        const attachEl = document.createElement('div');
+        attachEl.className = 'attachment';
+        attachEl.innerText = 'loading attachment...';
+        content.appendChild(attachEl);
+        loadAttachment(data.attachmentId, attachEl, channel); // no await
+    }
+    message = twemoji.parse(message);
+    return message;
 }
 
+function downloadFile(bytes, filename, mimetype) {
+    console.log({bytes, filename, mimetype})
+    const blob = new Blob([bytes], { type: mimetype });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+async function loadAttachment(id, el, channel) {
+    const meta = await (await fetch(`/api/attachment-metadata/${id}`)).json();
+    console.log(meta);
+    if (!meta.pending.includes(getUsername())) {
+        el.innerText = `📎 ${meta.fileName} (already have)`;
+        el.classList.add('disabled')
+        return;
+    }
+    el.innerText = `📎 ${meta.fileName}`;
+    const iv = Uint8Array.from(atob(meta.iv), c => c.charCodeAt(0));
+    el.style.cursor = 'pointer';
+    el.onclick = async () => {
+        el.innerText = 'downloading...';
+        const res = await fetch(`/api/attachment/${id}`);
+        const encrypted = await res.arrayBuffer();
+        const decrypted = await decryptMessage(encrypted, iv, states.key)
+        console.log(decrypted)
+        downloadFile(decrypted, meta.fileName, meta.mime_type);
+        el.innerText = `📎 ${meta.fileName} (downloaded)`;
+    };
+}
 
 function react(id, channel, emoji, user, action, socket, messageObj) {
     const messages = document.querySelector('.messages');

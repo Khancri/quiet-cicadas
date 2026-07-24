@@ -23,4 +23,15 @@ async function decryptMessage(messageBuf, iv, key) {
         messageBuf
     )
 }
-export {decryptMessage, createKey, encryptMessage};
+
+async function encryptFile(arrayBuffer, key) {
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await window.crypto.subtle.encrypt(
+        {name: 'AES-GCM', iv},
+        key,
+        arrayBuffer // raw bytes, no TextEncoder
+    );
+    return [encrypted, iv];
+}
+
+export {decryptMessage, createKey, encryptMessage, encryptFile};
