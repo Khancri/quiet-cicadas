@@ -71,6 +71,8 @@ export default function linkSocket(socket) {
         obj.content = new TextDecoder().decode(await RSA.receiveMessage(obj.content, privKey))
         if (states.channel === getDMChannelName(obj['user'])){
             await messagesLib.renderMessages(message, false, states.channel, socket); 
+        } else{
+            console.log('no renders')
         }
         await db.saveMessages(message, `${states.channel}`);
         

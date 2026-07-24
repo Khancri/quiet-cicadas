@@ -3,6 +3,7 @@ import { twemoji } from "./twemoji.js";
 import * as states from './state.js'
 import { pfpValid, showProfileModal } from "./profiles.js";
 import { decryptMessage } from "./crypto.js";
+import { retrievePrivateKey } from "./db.js";
 
 async function createMessage(data, id, channel, socket) {
     var message = document.createElement('div');
@@ -94,7 +95,13 @@ function downloadFile(bytes, filename, mimetype) {
 }
 
 async function loadAttachment(id, el, channel) {
-    const meta = await (await fetch(`/api/attachment-metadata/${id}`)).json();
+    const res = await fetch(`/api/attachment-metadata/${id}`)
+    if (!res.ok) {
+        el.innerText = `🚫 already grabbed file`;
+        el.classList.add('disabled')
+        return;
+    }
+    const meta = await res.json();
     console.log(meta);
     if (!meta.pending.includes(getUsername())) {
         el.innerText = `📎 ${meta.fileName} (already have)`;
@@ -104,6 +111,23 @@ async function loadAttachment(id, el, channel) {
     el.innerText = `📎 ${meta.fileName}`;
     const iv = Uint8Array.from(atob(meta.iv), c => c.charCodeAt(0));
     el.style.cursor = 'pointer';
+    if (meta.key !== undefined) {
+        el.onclick = async () => {
+            el.innerText = 'downloading...';
+
+            const privKey = await retrievePrivateKey();
+            const keyBuffer = Uint8Array.from(atob(meta.key), c => c.charCodeAt(0)).buffer;
+            const fileKey = await window.crypto.subtle.unwrapKey('raw', keyBuffer, privKey, {name: 'RSA-OAEP'}, {name: 'AES-GCM', length: 256}, true, ['encrypt', 'decrypt'])
+
+            const res = await fetch(`/api/attachment/${id}`);
+            const encrypted = await res.arrayBuffer();
+            const decrypted = await decryptMessage(encrypted, iv, fileKey)
+            console.log(decrypted)
+            downloadFile(decrypted, meta.fileName, meta.mime_type);
+            el.innerText = `📎 ${meta.fileName} (downloaded)`;
+        };
+        return;
+    }
     el.onclick = async () => {
         el.innerText = 'downloading...';
         const res = await fetch(`/api/attachment/${id}`);

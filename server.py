@@ -46,17 +46,21 @@ def save(file, todos):
     with open(file, 'w') as f:
         json.dump(todos, f, indent=4)
 
-def save_attachment(file_bytes, recipients, id, filename, mime_type, iv):
-    path = f'data/attachments/{id}'
+def save_attachment(data):
+    path = f'data/attachments/{data['id']}'
     with open(path, 'wb') as f:
-        f.write(file_bytes)
+        f.write(data['content'])
     meta = load('attachments.json')
-    meta[id] = {
-        'pending': recipients,
-        'fileName': filename,
-        'mime_type': mime_type,
-        'iv': iv
+    meta[data['id']] = {
+        'pending': data['users'],
+        'fileName': data['fileName'],
+        'mime_type': data['mimeType'],
+        'iv': data['iv']
     }
+    if 'key' in data.keys():
+        print(data['key'])
+        meta[data['id']]['key'] = data['key']
+    print(meta[data['id']])
     save('attachments.json', meta)
 
 def claim_attachment(id, username):
@@ -160,15 +164,32 @@ def upload_pfp():
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
     file = request.files['file']
+    key = None
+    if 'key' in request.form.keys():
+        key = request.form['key']
     iv = request.form['iv']
     mime_type = request.form['mimeType']
     filename = request.form['fileName']
-    channel = request.form['channel']
-    users = load('keys.json')[channel]['users']
-    users.pop(users.index(session['username']))
+    channel:str = request.form['channel']
+    if channel.startswith('@'):
+        users = [channel.replace('@', '').replace('-', '').replace(session['username'], '')]
+    else:
+        users = load('keys.json')[channel]['users']
+        users.pop(users.index(session['username']))
     content = file.read()
     hash = hashlib.sha256(content).hexdigest()
-    save_attachment(content, users, hash, filename, mime_type, iv)
+    attachmentData = {
+        'content': content,
+        'users': users,
+        'id': hash,
+        'fileName': filename,
+        'mimeType': mime_type,
+        'iv': iv
+    }
+    if key != None:
+        print(key)
+        attachmentData['key'] = key
+    save_attachment(attachmentData)
     print(f'iv is {iv}')
 
     return jsonify({'id': hash})
@@ -182,8 +203,10 @@ def get_attachment(hash):
 
 @app.route('/api/attachment-metadata/<string:hash>')
 def get_attachment_metadata(hash):
-    data = load('attachments.json')[hash]
-    return jsonify(data), 200
+    file = load('attachments.json')
+    if hash in file.keys():
+        return jsonify(file[hash]), 200
+    return '', 404
 
 @app.route('/me')
 def me():
@@ -448,16 +471,19 @@ def direct_message(data):
         'content': payload,
         'date': date,
     }
+    if 'attachments' in data.keys():
+            message_obj['attachmentId'] = data['attachments'][0]
     to_sid = findSID(to)
     # print(message_obj)
     if to_sid == None:
         saveToCache('dmsg', message_obj, to, hash, getChannel(f'@{to}', session['username']))
         send_push(to, f'Message from {session['username']}', 'Tap to read notification')
-        return {'hash': hash, 'date': date}
     if to_sid:
         socketio.emit('dm', {hash: message_obj}, to=to_sid)
         print('hi' + hash)
-        return {'hash': hash, 'date': date}
+    del message_obj['content']
+    message_obj['hash'] = hash
+    return message_obj
 
 @socketio.on('public_key_request')
 def key_request(data):

@@ -131,8 +131,13 @@ messageInput.addEventListener('keydown', async (e) => {
             const user = chats.getUserFromChannel();
             console.log(states.channel)
             const data = await chats.encryptOpts['dm'](messageInput.value.trim(), user, socket);
-            await messagesLib.renderMessages({[data.hash]: {'date': data.date, content: messageInput.value.trim(), user: getUsername()}}, false, `@${user}`, socket)
-            await db.saveMessages({[data.hash]: {'date': data.date, content: messageInput.value.trim(), user: getUsername()}}, states.channel)
+            console.log(data)
+            const obj = {[data.hash]: {'date': data.date, content: messageInput.value.trim(), user: getUsername()}}
+            if (data.attachmentId !== undefined) {
+                obj[data.hash].attachmentId = data.attachmentId
+            }
+            await messagesLib.renderMessages(obj, false, `@${user}`, socket)
+            await db.saveMessages(obj, states.channel)
         } else {
             await chats.encryptOpts['group'](messageInput.value.trim(), states.channel);
         }

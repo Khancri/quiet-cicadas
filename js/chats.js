@@ -234,7 +234,7 @@ export const encryptOpts = {
             console.log(image)
             
             formData.append('file', new Blob([image[0]]))
-        formData.append('iv', btoa(String.fromCharCode(...image[1])))
+            formData.append('iv', btoa(String.fromCharCode(...image[1])))
             formData.append('channel', states.channel)
             formData.append('fileName', states.pendingAttachments.name)
             formData.append('mimeType', states.pendingAttachments.type)
@@ -259,6 +259,39 @@ export const encryptOpts = {
         socket.emit('message', message_obj);
     },
     'dm': async (content, user, socket) => {
+
+        var fileId = null;
+        if (states.pendingAttachments !== null) {
+
+            const fileKey = await cryptoAPI.createKey()
+
+            const formData = new FormData()
+            const array = await states.pendingAttachments.arrayBuffer()
+            console.log(array)
+            const image = await cryptoAPI.encryptFile(array, fileKey)
+            console.log(image)
+            var publicKey = await emitAsync(socket, 'public_key_request', {user})
+            const keyBuffer = Uint8Array.from(atob(publicKey), c => c.charCodeAt(0));
+            publicKey = await crypto.subtle.importKey('spki', keyBuffer, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['wrapKey']);
+            const wrappedKey = await crypto.subtle.wrapKey('raw', fileKey, publicKey, {name: 'RSA-OAEP'});
+            
+            formData.append('file', new Blob([image[0]]))
+            formData.append('key', btoa(String.fromCharCode(...new Uint8Array(wrappedKey))))
+            formData.append('iv', btoa(String.fromCharCode(...image[1])))
+            formData.append('channel', states.channel)
+            formData.append('fileName', states.pendingAttachments.name)
+            formData.append('mimeType', states.pendingAttachments.type)
+            const res = await fetch('/api/upload', {method: 'POST', body: formData})
+            states.setPendingAttachments(null);
+            document.getElementById('attachment-preview').hidden = true;
+            document.getElementById('attachment-input').value = '';
+            if (!res.ok) {alert('file lost in transit'); return;}
+            fileId = (await res.json()).id
+        }
+        if (fileId !== null) {
+            console.log('dm file id')
+            return await RSA.sendMessage(content, user, socket, fileId)
+        }
         return await RSA.sendMessage(content, user, socket)
     },
 }
