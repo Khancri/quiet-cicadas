@@ -1,5 +1,5 @@
 const DB_NAME = 'cicadas';
-const DB_VERSION = 1.2;
+const DB_VERSION = 2.5;
 
 function openDB() {
     return new Promise((resolve, reject) => {
@@ -12,6 +12,9 @@ function openDB() {
             }
             if (!db.objectStoreNames.contains('keys')) {
                 db.createObjectStore('keys', { keyPath: 'channel' });
+            }
+            if (!db.objectStoreNames.contains('attachments')) {
+                db.createObjectStore('attachments', { keyPath: 'id' });
             }
         };
         req.onsuccess = () => resolve(req.result);
@@ -30,6 +33,31 @@ export async function saveMessages(messageObj, channel) {
     });
 }
 
+
+export async function saveAttachment(blob, id) {
+    console.log(blob)
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('attachments', 'readwrite');
+        tx.objectStore('attachments').put({id, blob});
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+export async function getAttachment(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('attachments', 'readonly');
+        const req = tx.objectStore('attachments').get(id);
+        req.onsuccess = async () => {
+            if (!req.result) return resolve(null);
+            console.log(req.result)
+            resolve(req.result.blob);
+        };
+        req.onerror = () => reject(req.error);
+    });
+}
 export async function getMessages(channel) {
     const db = await openDB();
     return new Promise((resolve, reject) => {

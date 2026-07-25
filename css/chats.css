@@ -606,6 +606,10 @@ flex-shrink: 0;
     cursor: pointer;
     width: fit-content;
 }
+.attachment img{
+    height: 15px;
+    width: auto;
+}
 .attachment:hover {
     border-color: var(--accent);
     color: var(--text);
@@ -621,6 +625,7 @@ flex-shrink: 0;
 .attachment-icon {
     font-size: 13px;
 }
+
 .attachment-name {
     max-width: 200px;
     overflow: hidden;

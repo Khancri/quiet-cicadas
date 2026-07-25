@@ -3,7 +3,7 @@ import { twemoji } from "./twemoji.js";
 import * as states from './state.js'
 import { pfpValid, showProfileModal } from "./profiles.js";
 import { decryptMessage } from "./crypto.js";
-import { retrievePrivateKey } from "./db.js";
+import { getAttachment, retrievePrivateKey, saveAttachment } from "./db.js";
 
 async function createMessage(data, id, channel, socket) {
     var message = document.createElement('div');
@@ -97,8 +97,23 @@ function downloadFile(bytes, filename, mimetype) {
 async function loadAttachment(id, el, channel) {
     const res = await fetch(`/api/attachment-metadata/${id}`)
     if (!res.ok) {
-        el.innerText = `🚫 already grabbed file`;
-        el.classList.add('disabled')
+        const cachedAttachment = await getAttachment(id);
+        if (cachedAttachment === null) {
+            el.innerText = `🚫 already grabbed file`;
+            el.classList.add('disabled')
+            twemoji.parse(el);
+            return;
+        }
+        if (cachedAttachment.type.startsWith('image/')) {
+            const url = URL.createObjectURL(cachedAttachment)
+            el.className = '';
+            const img = document.createElement('img');
+            img.className = 'chat-image';
+            img.src = url;
+            el.innerText = '';
+            el.appendChild(img)
+            return;
+        }
         return;
     }
     const meta = await res.json();
@@ -108,9 +123,34 @@ async function loadAttachment(id, el, channel) {
         el.classList.add('disabled')
         return;
     }
-    el.innerText = `📎 ${meta.fileName}`;
     const iv = Uint8Array.from(atob(meta.iv), c => c.charCodeAt(0));
+    if (meta.mime_type.startsWith('image/')) {
+        var decrypted;
+        if (meta.key !== undefined) {
+            const privkey = await retrievePrivateKey();
+            const keyBuffer = Uint8Array.from(atob(meta.key), c=>c.charCodeAt(0)).buffer;
+            const fileKey = await window.crypto.subtle.unwrapKey('raw', keyBuffer, privKey, {name: 'RSA-OAEP'}, {name: 'AES-GCM', length: 256}, true, ['decrypt'])
+            const res = await fetch(`api/attachment/${id}`)
+            const encrypted = await res.arrayBuffer();
+            decrypted = await decryptMessage(encrypted, iv, fileKey);
+        } else {
+            const res = await (await fetch(`api/attachment/${id}`)).arrayBuffer();
+            decrypted = await decryptMessage(res, iv, states.key);
+        }
+        const url = URL.createObjectURL(new Blob([decrypted], {type: meta.mime_type}))
+        el.className = '';
+        const img = document.createElement('img');
+        img.className = 'chat-image';
+        img.src = url;
+        el.innerText = '';
+        saveAttachment(new Blob([decrypted], {type: meta.mime_type}), id);
+        el.appendChild(img)
+        return;
+        
+    }
+    el.innerText = `📎 ${meta.fileName}`;
     el.style.cursor = 'pointer';
+    twemoji.parse(el);
     if (meta.key !== undefined) {
         el.onclick = async () => {
             el.innerText = 'downloading...';
