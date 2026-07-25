@@ -125,7 +125,7 @@ export async function obliterate() {
     });
 }
 
-export async function updateReactions(id, reaction, user, channel) {
+export async function updateReactions(id, reaction, user, channel, action) {
     const messages = await getMessages(channel)
     console.log(messages);
     const message = messages[id]
@@ -140,7 +140,12 @@ export async function updateReactions(id, reaction, user, channel) {
     if (!Object.hasOwn(message.reactions, reaction)) {
         message.reactions[reaction] = [];
     }
+    if (action === 'remove') {
+        message.reactions[reaction].splice(message.reactions[reaction].indexOf(user), 1)
+    } else {
     message.reactions[reaction].push(user);
+    }
+    
     await saveMessages({[id]: message}, channel);
     console.log(message)
 }

@@ -3,3 +3,9 @@ x 2026-07-12 (A) 2026-07-09 make profiles due:2026-07-11 @feature +vital
 x 2026-07-16 (A) 2026-07-13 fix key sharing + make key detection system due:2026-07-15 @feature +qolvital
 x 2026-07-16 (A) 2026-07-13 notifications due:2026-07-15 @feature +vital
 x 2026-07-20 (A) 2026-07-17 message queue system due:2026-07-20 @fullstack +chat
+x 2026-07-22 (A) 2026-07-22 organize chats.js due:2026-07-22 @js +organization +devx
+x 2026-07-20 (A) 2026-07-20 ADD DELETE PROFILE OPTION @vital +account
+x 2026-07-20 (B) 2026-07-20 messages sent in dm by user wont be stored on sending users client @bug +chat
+x 2026-07-24 (C) 2026-07-17 files due:2026-07-22 ext:2026-07-23 @htmlcssjs +chat
+x 2026-07-13 (C) 2026-07-13 change password functionality @htmlcssjs +account
+x 2026-07-20 (D) 2026-07-13 make customize profile modal update pfp according to account @bug

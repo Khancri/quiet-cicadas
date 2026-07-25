@@ -627,3 +627,14 @@ flex-shrink: 0;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+.chat-image {
+  max-width: 300px;
+  max-height: 300px;
+  min-width: 80px;
+  border-radius: 8px;
+  display: block;
+  margin-top: 4px;
+  cursor: pointer;
+  object-fit: cover;
+}

@@ -59,7 +59,7 @@ export default function linkSocket(socket) {
         message[Object.keys(message)[0]].content = new TextDecoder().decode(await cryptoAPI.decryptMessage(message[Object.keys(message)[0]].content, message[Object.keys(message)[0]].iv, states.key))
         await messagesLib.renderMessages(message, false, states.channel, socket); 
         const messages = document.getElementById('messages');
-        await db.saveMessages(message, getDMChannelName(states.channel.replace('@', '')));
+        await db.saveMessages(message, states.channel);
         
         messages.scrollTop = messages.scrollHeight;
     });
@@ -83,7 +83,7 @@ export default function linkSocket(socket) {
     socket.on('message_reacted', (data) => {
         console.log(data)
         messagesLib.react(data['id'], states.channel, data['reaction'], data['user'], data['action'], socket);
-        db.updateReactions(data['id'], data['reaction'], data['user'], states.channel)
+        db.updateReactions(data['id'], data['reaction'], data['user'], states.channel, data['action'])
     })
 
     socket.on('direct_message', async (data) => {

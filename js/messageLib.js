@@ -125,6 +125,8 @@ async function loadAttachment(id, el, channel) {
             console.log(decrypted)
             downloadFile(decrypted, meta.fileName, meta.mime_type);
             el.innerText = `📎 ${meta.fileName} (downloaded)`;
+            el.classList.add('disabled')
+            el.onclick = () => {}
         };
         return;
     }
@@ -136,6 +138,8 @@ async function loadAttachment(id, el, channel) {
         console.log(decrypted)
         downloadFile(decrypted, meta.fileName, meta.mime_type);
         el.innerText = `📎 ${meta.fileName} (downloaded)`;
+        el.classList.add('disabled')
+        el.onclick = () => {}
     };
 }
 
@@ -154,7 +158,6 @@ function react(id, channel, emoji, user, action, socket, messageObj) {
     }
     reactionRow.className = 'reaction-row'
     reactionEl.className = 'reaction'; reactionEl.dataset.emoji = encodeURIComponent(emoji);
-    reactionEl.innerHTML = `<span class="emoji">${emoji}</span><span class="counter">${counter+1}</span>`
     // // reactionEl.title = messageObj.reactions[emoji].join(', ')
     var peopleReacted;
     if (reactionEl.dataset.peopleReacted === undefined ||
@@ -163,7 +166,17 @@ function react(id, channel, emoji, user, action, socket, messageObj) {
     } else {
         peopleReacted = reactionEl.dataset.peopleReacted.split(',');
     }
-    peopleReacted.push(user);
+    console.log(action)
+    if (action === 'remove') {
+        peopleReacted.splice(peopleReacted.indexOf(user), 1);
+    } else {
+        peopleReacted.push(user);
+    }
+    if (peopleReacted.includes('')) {
+        peopleReacted.splice(peopleReacted.indexOf(''), 1)
+    }
+    reactionEl.innerHTML = `<span class="emoji">${emoji}</span><span class="counter">${peopleReacted.length}</span>`
+    console.log(peopleReacted)
     reactionEl.dataset.peopleReacted = peopleReacted.join(',')
     reactionEl.title = peopleReacted.join(', ')
     if (peopleReacted.includes(getUsername())) {
@@ -177,7 +190,6 @@ function react(id, channel, emoji, user, action, socket, messageObj) {
         }
     };  
     twemoji.parse(reactionEl);
-    console.log(reactionEl.outerHTML)
     reactionRow.appendChild(reactionEl);
     if (!messageObj.querySelector('.reaction-row')) {
         messageObj.appendChild(reactionRow);

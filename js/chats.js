@@ -57,6 +57,13 @@ async function cacheCheck() {
     const cache = await emitAsync(socket, 'cachegrab')
     console.log(cache);
     for (const [id, value] of Object.entries(cache)) {
+        if (id === 'reactions') {
+            console.log('loading reactions')
+            for (const [id, value] of Object.entries(cache)) {
+                messagesLib.react(id, value.channel, data.reaction, data.user, data.action, socket)
+            }
+            continue
+        }
         var channel;
         if (value.iv === null) {
             value.content = new TextDecoder().decode(await RSA.receiveMessage(value.content, await db.retrievePrivateKey()))

@@ -78,6 +78,14 @@ def claim_attachment(id, username):
     return data
 
 def saveToCache(type, data, person, id, channel):
+    if type == 'reaction':
+        store = load(f'store_{person}.json')
+        if 'reactions' not in store.keys():
+            store['reactions'] = {}
+        data['channel'] = channel
+        store['reactions'][id] = data
+        save(f'store_{person}.json', store)
+        return
     if type == 'msg':
         iv: bytes = data['iv']
         ivHash = hashlib.sha1(iv).hexdigest()
@@ -413,6 +421,18 @@ def fweh(data):
 
 @socketio.on('unreact')
 def unreact(data):
+    people = load('keys.json')[data['channel']]['users']
+    reaction_obj = {
+        'id': data['id'],
+        'reaction': data['reaction'],
+        'user': session['username'],
+        'action': 'remove'
+    }
+    for person in people:
+        if person in user_sockets.keys():
+            socketio.emit('message_reacted', reaction_obj, to=user_sockets[person]);
+            continue
+        saveToCache('reaction', reaction_obj, person, hash, data['channel'])
     socketio.emit('message_reacted', {
         'id': data['id'],
         'reaction': data['reaction'],
