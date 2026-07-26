@@ -12,7 +12,6 @@
     --amber:           #c9985a;
     --reacted-accent:  #b5a96e;
 
-    /* kept for compat with existing js that may reference these */
     --background-color:           var(--bg);
     --secondary-background-color: var(--bg2);
     --text-color:                 var(--text);
@@ -39,7 +38,6 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-/* macos-style window topbar — add to any page's first element */
 .window-bar {
     display: flex;
     align-items: center;

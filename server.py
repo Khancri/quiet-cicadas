@@ -12,7 +12,7 @@ import uuid
 import emoji
 from secrets import token_urlsafe
 import bcrypt
-import json; import os;
+import json; import os
 PROFILE_FILE = 'profiles.json'
 
 app = Flask(__name__, static_folder='.')

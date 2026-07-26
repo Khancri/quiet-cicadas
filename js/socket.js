@@ -49,7 +49,13 @@ export default function linkSocket(socket) {
             indicator.style.display = 'none';
             return; 
         } 
-        
+        if (data.includes(getUsername())) {
+            const i = data.indexOf(getUsername());
+            data.splice(i, 1);
+            data.reverse();
+            data.push('You');
+            data.reverse();
+        }
         indicator.style.display = 'block';
         const span = indicator.querySelector('.user');
         span.innerText = data.join(', ');
