@@ -127,8 +127,6 @@ var timeout;
 document.addEventListener('keydown', (e) => {
     if (!(e.altKey || e.ctrlKey || e.shiftKey || e.key === 'Enter') && document.activeElement !== messageInput) {
         messageInput.focus();
-        e.preventDefault();
-        e.stopImmediatePropagation();
         return;
     }
 })
