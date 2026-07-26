@@ -17,14 +17,14 @@ Cicadas is a small, self-hosted chat app built for people who'd rather run their
 
 ## Features
 
-- 🔐 Hybrid AES/RSA end-to-end encryption for DMs and group channels
-- 🖼️ Encrypted image transfer
-- 👤 User profiles: pronouns, join date, status, custom avatars
-- 🔔 Web push notifications (from message notifications to key requests)
-- 📬 Offline message queueing
-- 😀 Twemoji!
-- 📱 Mobile-friendly, collapsible sidebar
-- 🎨 Fully themeable via CSS custom properties
+- Hybrid AES/RSA end-to-end encryption for DMs and group channels
+- Encrypted image transfer
+- User profiles: pronouns, join date, status, custom avatars
+- Web push notifications (from message notifications to key requests)
+- Offline message queueing
+- Twemoji!
+- Mobile-friendly, collapsible sidebar
+- Fully themeable via CSS custom properties
 
 ---
 
@@ -63,8 +63,7 @@ Cicadas is designed to run happily on something as small as a Raspberry Pi.
 | Backend | Flask, Flask-SocketIO |
 | Frontend | Vanilla JS, Web Crypto API |
 | Storage | IndexedDB (client), no server-side message storage |
-| Encryption | RSA (DMs), AES-GCM (channels) |
-
+| Encryption | RSA (DMs), AES-GCM (channels) 
 ---
 
 ## Roadmap
