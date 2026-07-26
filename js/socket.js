@@ -46,7 +46,7 @@ export default function linkSocket(socket) {
     socket.on('typing', async (data) => {
         const indicator = document.getElementById('typing-indicator');
         if (data.length === 0) {
-            indicator.style.display = 'none';
+            indicator.hidden = true;
             return; 
         } 
         if (data.includes(getUsername())) {
@@ -56,7 +56,18 @@ export default function linkSocket(socket) {
             data.push('You');
             data.reverse();
         }
-        indicator.style.display = 'block';
+        if (data.length > 1) {
+            indicator.querySelector('.is-are').innerText = 'are'
+            console.log('multi')
+        } else if (data.length === 1 && data.includes('You')) {
+            indicator.querySelector('.is-are').innerText = 'are'
+            console.log('you')
+        } else {
+            indicator.querySelector('.is-are').innerText = 'is'
+            console.log('single')
+        }
+        
+        indicator.hidden = false;
         const span = indicator.querySelector('.user');
         span.innerText = data.join(', ');
     })

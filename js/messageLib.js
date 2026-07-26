@@ -195,6 +195,8 @@ async function loadAttachment(id, el, channel) {
         el.classList.add('disabled')
         el.onclick = () => {}
     };
+    const messages = document.getElementById('messages');
+    messages.scrollTop = messages.scrollHeight; 
 }
 
 function react(id, channel, emoji, user, action, socket, messageObj) {
