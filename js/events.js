@@ -124,6 +124,15 @@ document.getElementById('direct-message').onclick = async () => {
 
 const messageInput = document.getElementById('message-input');
 var timeout;
+document.addEventListener('keydown', (e) => {
+    if (!(e.altKey || e.ctrlKey || e.shiftKey || e.key === 'Enter') && document.activeElement !== messageInput) {
+        messageInput.focus();
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return;
+    }
+})
+
 messageInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
         if (messageInput.value.trim() == '') return;
@@ -144,7 +153,11 @@ messageInput.addEventListener('keydown', async (e) => {
         messageInput.value = ''; 
         // console.log('no no ')
     }
-    if (e.altKey || e.ctrlKey || e.shiftKey) {
+    if (e.key === 'Escape') {
+        messageInput.blur();
+        return;
+    }
+    if (e.altKey || e.ctrlKey || e.shiftKey || e.key === 'Tab') {
         return;
     }
     clearTimeout(timeout);

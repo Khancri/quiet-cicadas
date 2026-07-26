@@ -6,7 +6,7 @@ Cicadas is a small, self-hosted chat app built for people who'd rather run their
 
 ---
 
-## Why Cicadas?
+## Part where I convince you to use it
 
 - **End-to-end encrypted.** DMs use [RSA](https://en.wikipedia.org/wiki/Optimal_asymmetric_encryption_padding), group channels use [AES-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode). The server never sees your messages.
 - **No message storage on the server.** Messages live on your device (IndexedDB), not in the server.
