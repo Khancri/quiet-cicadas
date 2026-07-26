@@ -24,6 +24,12 @@ tokens = {}
 user_sockets = {}  # username → socket id
 rooms = {}
 
+os.makedirs('pfps', exist_ok=True)
+os.makedirs('data', exist_ok=True)
+os.makedirs('data/attachments', exist_ok=True)
+os.makedirs('data/bin', exist_ok=True)
+
+
 #region Utils
 def getChannel(channel: str, username: str):
     if channel.startswith('@'):
@@ -288,21 +294,18 @@ def subscribe():
 @app.errorhandler(403)
 def forbidden(e):
     if request.accept_mimetypes.accept_html and not request.accept_mimetypes.accept_json:
-        # It's highly likely a browser requesting a web page
         return redirect('/403')
     return '', 403
 
 @app.errorhandler(404)
 def not_found(e):
     if request.accept_mimetypes.accept_html and not request.accept_mimetypes.accept_json:
-        # It's highly likely a browser requesting a web page
         return redirect('/404')
     return '', 404
 
 @app.errorhandler(401)
 def unauthorized(e):
     if request.accept_mimetypes.accept_html and not request.accept_mimetypes.accept_json:
-        # It's highly likely a browser requesting a web page
         return redirect('/401')
     return '', 401    
 
