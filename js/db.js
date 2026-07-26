@@ -92,7 +92,6 @@ export async function savePrivateKey(key) {
     const exported = await crypto.subtle.exportKey('pkcs8', key);
 const exportedB64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
     console.log(exportedB64);
-    alert(exportedB64);
     return new Promise((resolve, reject) => {
         const tx = db.transaction('keys', 'readwrite');
         tx.objectStore('keys').put({ channel: 'private', key: exportedB64 });

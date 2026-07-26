@@ -40,7 +40,7 @@ document.getElementById('username-submit').onclick = async () => {
     const exists = await (await fetch(`/profile/exists/${encodeURIComponent(username)}`)).json()
     console.log(exists.ok);
     if (exists.ok == true) {
-        alert('omg')
+        document.getElementById('password-input-label').innerText = 'YOUR PREVIOUS PASSPHRASE';
         document.getElementById('password-submit').onclick = async () => {
             password = document.getElementById('password-input').value;
             logIn()
@@ -83,6 +83,7 @@ async function logIn() {
         return;
     }
     console.log(pfp);
+
     if (pfp === undefined) {
         window.location.href = '/chat';
         return;
@@ -96,7 +97,6 @@ async function pfpUpload() {
         formData.append('pfp', blob, 'pfp.png');
         const pfpUpload = await fetch('/pfp', {method: 'POST', body: formData});
         if (pfpUpload.status == 204) {
-            alert('uploaded!');
             window.location.href = '/chat';
         }
     });

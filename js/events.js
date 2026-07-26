@@ -114,7 +114,7 @@ document.getElementById('direct-message').onclick = async () => {
             await chats.changeMessageBox(`@${user}`);
         });
     document.getElementById('channel-name').innerText = `@${user}`
-    states.setChannel( getDMChannelName(user));
+    states.setChannel( chats.getDMChannelName(user));
     console.log(states.channel);
     await chats.regetKey();
     document.getElementById('messages').innerHTML = '';
@@ -143,6 +143,9 @@ messageInput.addEventListener('keydown', async (e) => {
         }
         messageInput.value = ''; 
         // console.log('no no ')
+    }
+    if (e.altKey || e.ctrlKey || e.shiftKey) {
+        return;
     }
     clearTimeout(timeout);
     timeout = setTimeout(() => {

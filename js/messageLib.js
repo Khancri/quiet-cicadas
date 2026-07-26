@@ -98,7 +98,7 @@ async function loadAttachment(id, el, channel) {
     const res = await fetch(`/api/attachment-metadata/${id}`)
     if (!res.ok) {
         const cachedAttachment = await getAttachment(id);
-        if (cachedAttachment === null) {
+        if (!cachedAttachment) {
             el.innerText = `🚫 already grabbed file`;
             el.classList.add('disabled')
             twemoji.parse(el);
@@ -119,6 +119,19 @@ async function loadAttachment(id, el, channel) {
     const meta = await res.json();
     console.log(meta);
     if (!meta.pending.includes(getUsername())) {
+        if (meta.mime_type.startsWith('image/')) {
+            const cachedAttachment = await getAttachment(id);
+            console.log(cachedAttachment)
+            const url = URL.createObjectURL(cachedAttachment)
+            el.className = '';
+            const img = document.createElement('img');
+            img.className = 'chat-image';
+            img.src = url;
+            el.innerText = '';
+            console.log('wadddup twin')
+            el.appendChild(img)
+            return;
+        }
         el.innerText = `📎 ${meta.fileName} (already have)`;
         el.classList.add('disabled')
         return;
@@ -127,7 +140,8 @@ async function loadAttachment(id, el, channel) {
     if (meta.mime_type.startsWith('image/')) {
         var decrypted;
         if (meta.key !== undefined) {
-            const privkey = await retrievePrivateKey();
+            const privKey = await retrievePrivateKey();
+            // console.log(privKey)
             const keyBuffer = Uint8Array.from(atob(meta.key), c=>c.charCodeAt(0)).buffer;
             const fileKey = await window.crypto.subtle.unwrapKey('raw', keyBuffer, privKey, {name: 'RSA-OAEP'}, {name: 'AES-GCM', length: 256}, true, ['decrypt'])
             const res = await fetch(`api/attachment/${id}`)
@@ -216,7 +230,6 @@ function react(id, channel, emoji, user, action, socket, messageObj) {
         peopleReacted.splice(peopleReacted.indexOf(''), 1)
     }
     reactionEl.innerHTML = `<span class="emoji">${emoji}</span><span class="counter">${peopleReacted.length}</span>`
-    console.log(peopleReacted)
     reactionEl.dataset.peopleReacted = peopleReacted.join(',')
     reactionEl.title = peopleReacted.join(', ')
     if (peopleReacted.includes(getUsername())) {
@@ -234,7 +247,6 @@ function react(id, channel, emoji, user, action, socket, messageObj) {
     if (!messageObj.querySelector('.reaction-row')) {
         messageObj.appendChild(reactionRow);
     }
-    console.log(messageObj)
     return reactionRow
 }
 
@@ -246,7 +258,6 @@ async function renderMessages(data, overwrite = false, channel, socket) {
     for (let i = 0; i < sorted.length; i++) {
         const [key, value] = sorted[i];
         const prev = i > 0 ? sorted[i - 1][1] : null;
-        console.log(sorted[i - 1])
         const message = document.querySelector(`[data-id="${key}"]`);
         if (message === null) {
             const el = await createMessage(value, key, channel, socket);

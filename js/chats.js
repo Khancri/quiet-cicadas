@@ -38,6 +38,9 @@ const daata = {
     }
 }
 await cacheCheck();
+if (!await db.retrievePrivateKey()) {
+    regenKeys();
+}
 states.setChannel('general');
 renderChannelHistory(); 
 messagesLib.newChannel(states.channel, async () => {
@@ -80,9 +83,23 @@ async function cacheCheck() {
     updateEncryptedInfo('Complete!')
 }
 
+async function regenKeys() {
+    const keys = await createKey();
+    await db.savePrivateKey(keys.privateKey);
+
+    const key = await window.crypto.subtle.exportKey('spki', keys.publicKey )
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(key)))
+    socket.emit('rsa-key-regen', {publicKey: b64});
+    alert('done!')
+}
+
 async function fetchKey(channel) {
     const list = await emitAsync(socket, 'channel_users', {channel})
-    if (list.list === null) {
+    if (list.list.includes(getUsername())) {
+        await emitAsync(socket, 'forgetkey', {channel: channel});
+        await fetchKey(channel) 
+    }
+    if (list.list === null || list.list.length === 0) {
         states.setKey(await cryptoAPI.createKey());
         db.saveKey(channel, states.key)
         socket.emit('keyupdate', {channel});
@@ -185,14 +202,7 @@ export async function regetKey() {
 window.refreshKey = regetKey;
 
 document.getElementById('regen-keys').onclick = async () => {
-    const keys = await createKey();
-    await db.savePrivateKey(keys.privateKey);
-
-    const key = await window.crypto.subtle.exportKey('spki', keys.publicKey )
-    const b64 = btoa(String.fromCharCode(...new Uint8Array(key)))
-    alert(new TextDecoder().decode(key))
-    alert(b64)
-    socket.emit('rsa-key-regen', {publicKey: b64});
+    regenKeys();
 }
 var cropper;
 document.getElementById('pfp-file-input').onchange = async (e) => {
@@ -246,11 +256,14 @@ export const encryptOpts = {
             formData.append('fileName', states.pendingAttachments.name)
             formData.append('mimeType', states.pendingAttachments.type)
             const res = await fetch('/api/upload', {method: 'POST', body: formData})
-            states.setPendingAttachments(null);
             document.getElementById('attachment-preview').hidden = true;
             document.getElementById('attachment-input').value = '';
             if (!res.ok) {alert('file lost in transit'); return;}
             fileId = (await res.json()).id
+            if (states.pendingAttachments.type.startsWith('image/')) {
+                await db.saveAttachment(new Blob([array], {type: states.pendingAttachments.type}), fileId)
+            }
+            states.setPendingAttachments(null);
         }
         const encrypted = await cryptoAPI.encryptMessage(content, states.key)
 
@@ -261,7 +274,7 @@ export const encryptOpts = {
         }
         if (fileId !== null) {
             message_obj.attachments = [fileId]
-        }
+        } 
 
         socket.emit('message', message_obj);
     },
@@ -356,7 +369,7 @@ export async function changeMessageBox(channelName) {
 }
 
 
-function getDMChannelName(user) {
+export function getDMChannelName(user) {
     if (user.localeCompare(getUsername()) < 0) {
         return `@${user}-${getUsername()}`
     } else {
@@ -387,7 +400,6 @@ async function checkUser() {
 
 export async function getMessages1() {
     var data = await db.getMessages(states.channel);
-    console.log(data)
     if (!data || Object.keys(data).length === 0) return;
     await messagesLib.renderMessages(data, false, states.channel, socket);
 }
