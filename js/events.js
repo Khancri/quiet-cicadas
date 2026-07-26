@@ -3,6 +3,7 @@ import * as states from './state.js'
 import * as messagesLib from './messageLib.js'
 import * as chats from './chats.js'
 import { getUsername } from './userInfo.js';
+import { open } from './emojiPicker.js';
 export default function linkEventListeners(socket) {
     document.getElementById('logout').onclick = async () => {
         const thing = await fetch('logout', {method: 'POST'});
@@ -125,10 +126,22 @@ document.getElementById('direct-message').onclick = async () => {
 const messageInput = document.getElementById('message-input');
 var timeout;
 document.addEventListener('keydown', (e) => {
-    if (!(e.altKey || e.ctrlKey || e.shiftKey || e.key === 'Enter') && document.activeElement !== messageInput) {
+    if (!(e.altKey || e.ctrlKey || e.shiftKey || e.key === 'Enter') && 
+    document.activeElement !== messageInput && 
+    document.activeElement.tagName !== 'INPUT') {
         messageInput.focus();
         return;
     }
+})
+
+document.querySelector('#emoji-picker-btn').addEventListener('click', () => {
+    open(document.querySelector('#emoji-picker-btn'), {targetInput: messageInput})
+})
+
+document.querySelector('.emoji-context').addEventListener('click', () => {
+    console.log(states.channel);
+    open(document.querySelector('.emoji-context'), {id: states.selectedMessageID, socket: socket, channel: states.channel})
+    // socket.emit('react', {id: states.selectedMessageID, reaction: prompt('emoji? '), channel: states.channel})
 })
 
 messageInput.addEventListener('keydown', async (e) => {
@@ -155,7 +168,7 @@ messageInput.addEventListener('keydown', async (e) => {
         messageInput.blur();
         return;
     }
-    if (e.altKey || e.ctrlKey || e.shiftKey || e.key === 'Tab') {
+    if (e.altKey || e.ctrlKey || e.shiftKey || e.key === 'Tab' || e.key === 'Backspace') {
         return;
     }
     clearTimeout(timeout);

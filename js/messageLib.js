@@ -82,7 +82,6 @@ async function createMessage(data, id, channel, socket) {
 }
 
 function downloadFile(bytes, filename, mimetype) {
-    console.log({bytes, filename, mimetype})
     const blob = new Blob([bytes], { type: mimetype });
     const url = URL.createObjectURL(blob);
 
@@ -111,13 +110,13 @@ async function loadAttachment(id, el, channel) {
             img.className = 'chat-image';
             img.src = url;
             el.innerText = '';
+            URL.revokeObjectURL(url);
             el.appendChild(img)
             return;
         }
         return;
     }
     const meta = await res.json();
-    console.log(meta);
     if (!meta.pending.includes(getUsername())) {
         if (meta.mime_type.startsWith('image/')) {
             const cachedAttachment = await getAttachment(id);
@@ -126,9 +125,9 @@ async function loadAttachment(id, el, channel) {
             el.className = '';
             const img = document.createElement('img');
             img.className = 'chat-image';
+            URL.revokeObjectURL(url);
             img.src = url;
             el.innerText = '';
-            console.log('wadddup twin')
             el.appendChild(img)
             return;
         }
@@ -156,6 +155,7 @@ async function loadAttachment(id, el, channel) {
         const img = document.createElement('img');
         img.className = 'chat-image';
         img.src = url;
+        URL.revokeObjectURL(url);
         el.innerText = '';
         saveAttachment(new Blob([decrypted], {type: meta.mime_type}), id);
         el.appendChild(img)

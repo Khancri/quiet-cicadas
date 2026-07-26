@@ -33,6 +33,36 @@ export async function saveMessages(messageObj, channel) {
     });
 }
 
+export async function saveSticker(blob, id, name) {
+    if (localStorage.getItem('stickers') === null) {
+        localStorage.setItem('stickers', '{}');
+    }
+    const sns = JSON.parse(localStorage.getItem('stickers'))
+    sns[name] = id
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('stickers', 'readwrite');
+        tx.objectStore('stickers').put({id, blob});
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+export async function getSticker(name) {
+    if (localStorage.getItem('stickers') === null) return undefined
+    const id = JSON.parse(localStorage.getItem('stickers'))[name]
+    const db = await openDB();
+    return new Promise((resolve, reject) => {stickers
+        const tx = db.transaction('stickers', 'readonly');
+        const req = tx.objectStore('stickers').get(id);
+        req.onsuccess = async () => {
+            if (!req.result) return resolve(null);
+            console.log(req.result)
+            resolve(req.result.blob);
+        };
+        req.onerror = () => reject(req.error);
+    });
+}
 
 export async function saveAttachment(blob, id) {
     console.log(blob)

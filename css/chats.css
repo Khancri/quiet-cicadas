@@ -553,7 +553,7 @@ flex-shrink: 0;
 
 #encryption-status {color:var(--text-muted); font-size:11px;}
 
-#attach-btn {
+#attach-btn, #emoji-picker-btn {
     background: transparent;
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -563,7 +563,7 @@ flex-shrink: 0;
     cursor: pointer;
     flex-shrink: 0;
 }
-#attach-btn:hover {
+#attach-btn:hover, #emoji-picker-btn:hover {
     border-color: var(--accent);
     color: var(--accent);
 }
@@ -638,6 +638,17 @@ flex-shrink: 0;
   max-height: 300px;
   min-width: 80px;
   border-radius: 8px;
+  display: block;
+  margin-top: 4px;
+  cursor: pointer;
+  object-fit: cover;
+}
+
+.sticker {
+  max-width: 150px;
+  max-height: 150px;
+  min-width: 40px;
+  border-radius: 4px;
   display: block;
   margin-top: 4px;
   cursor: pointer;

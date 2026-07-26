@@ -420,10 +420,7 @@ function unreact(emoji, messageID, channel) {
     socket.emit('unreact', {id: states.selectedMessageID, reaction: emoji, channel: channel})
 }
 
-document.querySelector('.emoji-context').addEventListener('click', () => {
-    console.log(states.channel);
-    socket.emit('react', {id: states.selectedMessageID, reaction: prompt('emoji? '), channel: states.channel})
-})
+
 
 
 export function emitAsync(socket, event, data) {
