@@ -14,8 +14,10 @@ import { updateEncryptedInfo } from './ui.js';
 import * as states from './state.js'
 import linkSocket from './socket.js'
 import linkEventListeners from './events.js';
+import * as keys from './keys.js';
 
-const socket = io();
+export const socket = io();
+
 
 
 const daata = {
@@ -39,21 +41,15 @@ const daata = {
 }
 await cacheCheck();
 if (!await db.retrievePrivateKey()) {
-    regenKeys();
+    keys.regenKeys();
 }
-states.setChannel('general');
+
 renderChannelHistory(); 
-messagesLib.newChannel(states.channel, async () => {
+messagesLib.newChannel('general', async () => {
     changeMessageBox('general')
 });
-document.getElementById('channel-name').innerText = `#${states.channel}`
-await regetKey();
-document.getElementById('messages').innerHTML = '';
 
-getMessages1();
-socket.emit("join", { room: states.channel });
-regetKey();
-await messagesLib.renderMessages(daata, false, states.channel, socket);
+await changeMessageBox('general');
 
 async function cacheCheck() {
     updateEncryptedInfo('Grabbing Cache..')
@@ -82,47 +78,6 @@ async function cacheCheck() {
     }
     updateEncryptedInfo('Complete!')
 }
-
-async function regenKeys() {
-    const keys = await createKey();
-    await db.savePrivateKey(keys.privateKey);
-
-    const key = await window.crypto.subtle.exportKey('spki', keys.publicKey )
-    const b64 = btoa(String.fromCharCode(...new Uint8Array(key)))
-    socket.emit('rsa-key-regen', {publicKey: b64});
-    alert('done!')
-}
-
-async function fetchKey(channel) {
-    const list = await emitAsync(socket, 'channel_users', {channel})
-    if (list.list.includes(getUsername())) {
-        await emitAsync(socket, 'forgetkey', {channel: channel});
-        await fetchKey(channel) 
-    }
-    if (list.list === null || list.list.length === 0) {
-        states.setKey(await cryptoAPI.createKey());
-        db.saveKey(channel, states.key)
-        socket.emit('keyupdate', {channel});
-        updateEncryptedInfo('end-to-end encrypted (AES-GCM)')
-        states.setKeySearching(false);
-    } else {
-        if (list.list.length === 0) {
-            // alert('no one online to give you key ;(');
-            document.getElementById('message-input').disabled = true;
-            document.getElementById('message-input').placeholder = 'channels locked';
-            states.setKeySearching(false);
-            updateEncryptedInfo('channel encrypted (all keyholders offline)')
-            return;
-        }
-        if (list.list[0] === getUsername()) {
-            await emitAsync(socket, 'forgetkey', {channel: channel});
-            await fetchKey(channel)
-            return;
-        }
-        socket.emit('request_key', {user: list.list[0], channel: channel})
-    }
-}
-
 
 //   .then(reg => console.log('sw registered', reg))
 //   .catch(err => console.error('sw registration failed', err));
@@ -176,7 +131,7 @@ export async function regetKey() {
     document.getElementById('message-input').placeholder = 'say something...';
     document.getElementById('message-input').disabled = false;
     if (states.channel.startsWith('@')) {
-        const user = getUserFromChannel();
+        const user = getUserFromChannel(states.channel);
         console.log(`user: ${user}`)
         var key_ = await emitAsync(socket, 'public_key_request', {user})
 
@@ -192,7 +147,7 @@ export async function regetKey() {
     }
     key_ = await db.getKey(states.channel)
     if (key_ === null) {
-        fetchKey(states.channel);
+        keys.fetchKey(states.channel);
         states.setKeySearching(true);
     } else {
         updateEncryptedInfo('end-to-end encrypted (AES-GCM)')
@@ -348,16 +303,19 @@ export async function changeMessageBox(channelName) {
     }
 
     if (states.channel.startsWith('@')) {
-        const user = getUserFromChannel();
-        console.log(`.sidebar .dm-item[data-user-data="${encodeURIComponent(user)}"]`)
+        const user = getUserFromChannel(states.channel);
         if (document.querySelector(`[data-user-data="${encodeURIComponent(user)}"]`) === null) return;
         document.querySelector(`[data-user-data="${encodeURIComponent(user)}"]`).classList.add('active')
+        document.querySelector(`[data-user-data="${encodeURIComponent(user)}"]`).classList.remove('notify')
         document.getElementById('channel-name').innerText = `@${user}`
+        db.removeUnread(getDMChannelName(user))
     } else {
         console.log(`.sidebar .dm-item[data-channel-name="${encodeURIComponent(states.channel)}"]`)
         document.querySelector(`[data-channel-data="${encodeURIComponent(states.channel)}"]`).classList.add('active')
+        document.querySelector(`[data-channel-data="${encodeURIComponent(states.channel)}"]`).classList.remove('notify')
         document.getElementById('channel-name').innerText = `#${states.channel}`
         states.setChannel(channelName)
+        db.removeUnread(channelName)
     }
     await regetKey();
 

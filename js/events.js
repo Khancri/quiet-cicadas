@@ -148,7 +148,7 @@ messageInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
         if (messageInput.value.trim() == '') return;
         if (states.channel.startsWith('@')) {
-            const user = chats.getUserFromChannel();
+            const user = chats.getUserFromChannel(states.channel);
             console.log(states.channel)
             const data = await chats.encryptOpts['dm'](messageInput.value.trim(), user, socket);
             console.log(data)

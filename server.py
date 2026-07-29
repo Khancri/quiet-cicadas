@@ -24,10 +24,10 @@ tokens = {}
 user_sockets = {}  # username → socket id
 rooms = {}
 
-os.makedirs('pfps', exist_ok=True)
-os.makedirs('data', exist_ok=True)
-os.makedirs('data/attachments', exist_ok=True)
-os.makedirs('data/bin', exist_ok=True)
+os.makedirs('./pfps/', exist_ok=True)
+os.makedirs('./data/', exist_ok=True)
+os.makedirs('./data/attachments/', exist_ok=True)
+os.makedirs('./data/bin/', exist_ok=True)
 
 
 #region Utils
@@ -393,10 +393,11 @@ def post_message(data):
         'content': data['content'],  # will be arraybuffer
         'iv': data['iv'],
         'date': datetime.now().isoformat(),
+        'channel': data['channel']
     }
     if 'attachments' in data.keys():
         message_obj['attachmentId'] = data['attachments'][0]
-    
+    print(message_obj)
     people = load('keys.json')[data['channel']]['users']
     for person in people:
         if person in user_sockets.keys():

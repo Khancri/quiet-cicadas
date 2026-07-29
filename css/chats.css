@@ -654,3 +654,12 @@ flex-shrink: 0;
   cursor: pointer;
   object-fit: cover;
 }
+
+.dm-item.notify .avatar-sm {
+background: var(--burgundy);
+color: white;
+}
+.dm-item.notify span {
+    color: var(--amber);
+    font-weight: bold;
+}

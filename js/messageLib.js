@@ -3,7 +3,10 @@ import { twemoji } from "./twemoji.js";
 import * as states from './state.js'
 import { pfpValid, showProfileModal } from "./profiles.js";
 import { decryptMessage } from "./crypto.js";
-import { getAttachment, retrievePrivateKey, saveAttachment } from "./db.js";
+import { getAttachment, isUnread, retrievePrivateKey, saveAttachment } from "./db.js";
+import { changeMessageBox } from "./chats.js";
+import { getDMChannelName } from "./utils.js";
+import { createNotificationBadge } from "./ui.js";
 
 async function createMessage(data, id, channel, socket) {
     var message = document.createElement('div');
@@ -318,9 +321,7 @@ function newChannel(channelName, callback) {
     };
     const channelRanking = document.querySelector('#t-channelRanking').content.cloneNode(true);
     channelRanking.querySelector('span').innerText = channelName;
-    // channelRanking.onclick = callback
     channelRanking.querySelector('.channel-exit').onclick = () => closeChannel(channelName)
-    // channelRanking.dataset.channelData = channelName;
     console.log(channelRanking);
     document.querySelector('#channelList').appendChild(channelRanking);
     const list = document.querySelectorAll('#channelList > .dm-item');
@@ -328,6 +329,7 @@ function newChannel(channelName, callback) {
     list[list.length-1].onclick = callback;
     list[list.length-1].dataset.channelData = encodeURIComponent(channelName);
     addChannelToHistory(channelName)
+    if (isUnread(channelName)) createNotificationBadge(channelName)
 }
 
 async function newDirectMessageChannel(user, callback) {
@@ -339,12 +341,8 @@ async function newDirectMessageChannel(user, callback) {
     undoAllActiveChannels();
     const channelRanking = document.querySelector('#t-userRanking').content.cloneNode(true);
     channelRanking.querySelector('span').innerText = user;
-    const valid = await pfpValid(user);
-    if (!valid[0]) {
-        channelRanking.querySelector('.avatar-sm').appendChild(valid[1])
-    } else {
-        channelRanking.querySelector('img').src = `/pfp/${user}`
-    }
+    
+    channelRanking.querySelector('img').src = `/pfp/${user}`
     
     channelRanking.querySelector('.channel-exit').onclick = () => closeChannel('@' + user)
     channelRanking.onclick = (e) => {
@@ -352,15 +350,20 @@ async function newDirectMessageChannel(user, callback) {
             // console.log('nun')
             return;
         }
-        callback();
+        changeMessageBox(getDMChannelName(user))
     };
     console.log(channelRanking);
     document.querySelector('#dmList').appendChild(channelRanking);
     
     const list = document.querySelectorAll('#dmList > .dm-item');
     list[list.length-1].dataset.userData = encodeURIComponent(user);
-    list[list.length-1].onclick = callback;
+    list[list.length-1].onclick = (e) => {
+        console.log('hi')
+        callback()
+    };
     console.log(list[list.length-1]);
+
+    if (isUnread(getDMChannelName(user))) createNotificationBadge(getDMChannelName(user))
     addChannelToHistory(`@${user}`);
 }
 

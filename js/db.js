@@ -140,7 +140,7 @@ export async function retrievePrivateKey() {
             const binary = atob(req.result.key);
             const buffer = Uint8Array.from(binary, c => c.charCodeAt(0)).buffer;
             const key = await crypto.subtle.importKey('pkcs8', buffer, {name: 'RSA-OAEP', hash:'SHA-256'}, false, ['decrypt', 'unwrapKey'])
-            console.log(key);
+            console.log('Private key:', key);
             resolve(key);
         }
         req.onerror = () => reject(req.error);
@@ -205,4 +205,26 @@ export async function updateReactions(id, reaction, user, channel, action) {
     
     await saveMessages({[id]: message}, channel);
     console.log(message)
+}
+
+export function addUnread(channel) {
+    var orig = JSON.parse(localStorage.getItem('unread'))
+    if (orig === null) {
+        orig = {}
+    }
+    orig[channel] = true;
+    localStorage.setItem('unread', JSON.stringify(orig))
+}
+
+export function removeUnread(channel) {
+    var orig = JSON.parse(localStorage.getItem('unread'))
+    if (orig === null || !orig[channel]) return;
+    orig[channel] = false;
+    localStorage.setItem('unread', JSON.stringify(orig))
+}
+
+export function isUnread(channel) {
+    var orig = JSON.parse(localStorage.getItem('unread'))
+    if (orig === null || !orig[channel]) return false;
+    return orig[channel]
 }

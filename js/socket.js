@@ -1,4 +1,4 @@
-import { updateEncryptedInfo } from './ui.js'
+import { createNotificationBadge, updateEncryptedInfo } from './ui.js'
 import * as states from './state.js'
 import * as RSA from './rsa.js'
 import * as cryptoAPI from './crypto.js'
@@ -73,25 +73,35 @@ export default function linkSocket(socket) {
     })
 
     socket.on('new_message', async (message) => {
-        message[Object.keys(message)[0]].content = new TextDecoder().decode(await cryptoAPI.decryptMessage(message[Object.keys(message)[0]].content, message[Object.keys(message)[0]].iv, states.key))
-        await messagesLib.renderMessages(message, false, states.channel, socket); 
+        console.log(`channel from ${message[Object.keys(message)[0]].channel}`, message)
+        if (message[Object.keys(message)[0]].channel === states.channel) {
+            message[Object.keys(message)[0]].content = new TextDecoder().decode(await cryptoAPI.decryptMessage(message[Object.keys(message)[0]].content, message[Object.keys(message)[0]].iv, states.key))
+            await messagesLib.renderMessages(message, false, message[Object.keys(message)[0]].channel, socket); 
+        } else {
+            const channelKey = await db.getKey(message[Object.keys(message)[0]].channel)
+            message[Object.keys(message)[0]].content = new TextDecoder().decode(await cryptoAPI.decryptMessage(message[Object.keys(message)[0]].content, message[Object.keys(message)[0]].iv, channelKey))
+            createNotificationBadge(message[Object.keys(message)[0]].channel)
+
+        }
+        
         const messages = document.getElementById('messages');
-        await db.saveMessages(message, states.channel);
+        await db.saveMessages(message, message[Object.keys(message)[0]].channel);
         
         messages.scrollTop = messages.scrollHeight;
     });
 
     socket.on('dm', async (message) => {
-        console.log(message)
         const obj = message[Object.keys(message)[0]];
+        console.log(`dm from ${obj.user}`, message)
         const privKey = await db.retrievePrivateKey();
         obj.content = new TextDecoder().decode(await RSA.receiveMessage(obj.content, privKey))
         if (states.channel === getDMChannelName(obj['user'])){
             await messagesLib.renderMessages(message, false, states.channel, socket); 
         } else{
             console.log('no renders')
+            createNotificationBadge(getDMChannelName(obj['user']))
         }
-        await db.saveMessages(message, `${states.channel}`);
+        await db.saveMessages(message, getDMChannelName(obj.user));
         
         const messages = document.getElementById('messages');
         messages.scrollTop = messages.scrollHeight;
