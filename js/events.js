@@ -4,6 +4,7 @@ import * as messagesLib from './messageLib.js'
 import * as chats from './chats.js'
 import { getUsername } from './userInfo.js';
 import { open } from './emojiPicker.js';
+import { emitAsync } from './utils.js';
 export default function linkEventListeners(socket) {
     document.getElementById('logout').onclick = async () => {
         const thing = await fetch('logout', {method: 'POST'});
@@ -26,12 +27,12 @@ export default function linkEventListeners(socket) {
     }
     
     document.getElementById('customize-profile').onclick = async () => {
-        const data = await chats.emitAsync(socket, 'view-profile', {user: getUsername()})
+        const data = await emitAsync(socket, 'view-profile', {user: getUsername()})
         document.getElementById('pronouns').value = data.pronouns ?? ''
         document.getElementById('bio').value = data.bio ?? ''
         document.getElementById('handle').value = getUsername();
         document.getElementById('display-name').value = data.displayName ?? getUsername();
-        document.getElementById('edit-profile').style.display = 'flex';
+        document.getElementById('edit-profile').hidden = false;
         document.querySelector('.pfp-edit-wrap img').src = '/pfp/'+getUsername();
     }
 
@@ -128,11 +129,13 @@ var timeout;
 document.addEventListener('keydown', (e) => {
     if (!(e.altKey || e.ctrlKey || e.shiftKey || e.key === 'Enter') && 
     document.activeElement !== messageInput && 
-    document.activeElement.tagName !== 'INPUT') {
+    document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
         messageInput.focus();
         return;
     }
 })
+
+document.querySelector('.header .dot.r').onclick = () => window.close()
 
 document.querySelector('#emoji-picker-btn').addEventListener('click', () => {
     open(document.querySelector('#emoji-picker-btn'), {targetInput: messageInput})

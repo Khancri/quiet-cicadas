@@ -51,7 +51,8 @@ body {
     flex-shrink: 0;
 }
 .window-bar .dots { display: flex; gap: 6px; }
-.window-bar .dot  { width: 10px; height: 10px; border-radius: 50%; }
+.window-bar .dot  { width: 10px; height: 10px; border-radius: 50%; transition: all .25s linear; }
+.window-bar .dot:hover  { width: 20px; height: 20px;}
 .window-bar .dot.r { background: #7a4040; }
 .window-bar .dot.y { background: #7a6a40; }
 .window-bar .dot.g { background: var(--accent); opacity: .7; }
