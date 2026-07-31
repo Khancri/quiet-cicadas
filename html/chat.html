@@ -42,8 +42,8 @@
 </template>
 
 <template id="t-userRanking">
-    <div class="dm-item" data-user-data="paramore">
-        <div style="display: flex; gap: 8px; align-items: center; overflow: scroll;">
+    <div class="dm-item" data-friend-data="paramore">
+        <div style="display: flex; gap: 8px; align-items: center; overflow: auto;">
             <div class="avatar-sm"><img src="" alt=""></div><span>paramore</span>
         </div>
         <div class="channel-exit">⤬</div>   
@@ -67,6 +67,20 @@
             <button id="emoji-picker-btn" type="button">😀</button>
         </div>
     </div>
+</template>
+
+<template id="t-friendRanking">
+    <div class="friendRanking" data-friend-data="paramore">
+        <div style="display: flex; gap: 8px; align-items: center; overflow: auto;">
+            <div class="avatar-sm"><img src="" alt=""></div><span>paramore</span>
+        </div> 
+        <button class="button message-user">message</button>
+    </div>
+</template>
+
+<template id="t-friendsList">
+    <div id="requests"></div>
+    <div id="friendsList"></div>
 </template>
 
 <body>
@@ -133,8 +147,9 @@
         <div style="flex-direction: row; display: flex; align-items: center; justify-content: space-between;"><p class="handle">@khancri</p><p class="pronouns">she/her</p></div>
         <div class="pfp-glow-wrap">
             <img src="pfp/khancri" class="modal-pfp">
-    </div>
-    <div class="bio">building cicadas, an e2e encrypted discord alternative. mossy terminal aesthetic enjoyer 🌿</div>
+        </div>
+        <div class="bio">building cicadas, an e2e encrypted discord alternative. mossy terminal aesthetic enjoyer 🌿</div>
+        <button class="button">request</button>
     </div>
     <div id="modal"></div>
     <div id="toast-zone"></div>

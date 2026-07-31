@@ -1,3 +1,5 @@
+import { getUsername } from "./userInfo.js";
+
 function emitAsync(socket, event, data) {
   return new Promise((resolve) => {
     socket.emit(event, data, resolve)
@@ -13,20 +15,17 @@ export async function showProfileModal(username, clickEvent, position, socket) {
     prof.querySelector('#modal-username').style.textTransform = 'capitalize';
     prof.querySelector('#modal-username').innerText = data.displayName;
     prof.querySelector('.handle').innerText = username;
-    const valid = await pfpValid(username)
     const glowWrap = prof.querySelector('.pfp-glow-wrap');
-    const oldAvatar = glowWrap.querySelector('.ascii-avatar');
-    if (oldAvatar) oldAvatar.remove();
-    if (!valid[0]) {
-        glowWrap.appendChild(valid[1])
-        prof.querySelector('.modal-pfp').style.display = 'none';
-        glowWrap.style.removeProperty('--glow-pfp');
-    } else {
-        prof.querySelector('.modal-pfp').src = `/pfp/${username}?q=${encodeURIComponent(new Date().getTime())}`
-        prof.querySelector('.modal-pfp').style.display = 'block';
-        glowWrap.style.setProperty('--glow-pfp', `url(/pfp/${username})`);
+    
+    prof.querySelector('.modal-pfp').src = `/pfp/${username}?q=${encodeURIComponent(new Date().getTime())}`
+    prof.querySelector('.modal-pfp').style.display = 'block';
+    glowWrap.style.setProperty('--glow-pfp', `url(/pfp/${username})`);
+    if (username === getUsername()) prof.querySelector('.button').hidden = true;
+    else prof.querySelector('.button').hidden = false;
+    prof.querySelector('.button').onclick = () => {
+        socket.emit('friend_request', {user: username, action: 'add'})
     }
-        
+
     prof.style.display = 'flex';
     console.log(Object.keys(data).includes('pronouns'))
     if (Object.keys(data).includes('pronouns')) {

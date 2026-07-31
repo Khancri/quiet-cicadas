@@ -13,7 +13,6 @@ import emoji
 from secrets import token_urlsafe
 import bcrypt
 import json; import os
-PROFILE_FILE = 'profiles.json'
 
 app = Flask(__name__, static_folder='.')
 socketio = flask_socketio.SocketIO(app, cors_allowed_origins="*")
@@ -612,7 +611,30 @@ def viewProfile(data):
     profile = load('profiles.json')[data['user']]
     del profile['key']; del profile['password']; del profile['username']
     return profile  
-        
+
+@socketio.on('friend_request')
+def friend_request(data):
+    action = data['action']
+    if action == 'list':
+        return load('requests.json')
+    user = data['user']
+    key = getChannel(f'@{user}', session['username'])
+    if action == 'add':
+        data = load('requests.json')
+        data[key] = {
+            'status': 'pending',
+            'receiver': user
+        }
+        data['_cache']
+        save('requests.json', data)
+    if action == 'accept':
+        data = load('requests.json')
+        data[key]['status'] = 'accepted'
+        save('requests.json', data)
+    if action == 'decline':
+        data = load('requests.json')
+        data[key]['status'] = 'declined'
+        save('requests.json', data)
 
 if __name__ == '__main__':  
     socketio.run(app, host  ='0.0.0.0', port=443, ssl_context=('cert.pem', 'key.pem'))
