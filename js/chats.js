@@ -10,14 +10,14 @@ import { getUsername, updateInfo } from './userInfo.js';
 import { twemoji } from './twemoji.js';
 import * as db from './db.js'
 import { pfpValid } from './profiles.js';
-import { updateEncryptedInfo } from './ui.js';
+import { changeMainPanel, updateEncryptedInfo, renderChannelHistory  } from './ui.js';
 import * as states from './state.js'
 import linkSocket from './socket.js'
-import linkEventListeners from './events.js';
+import {linkDefaultEventListeners} from './events.js';
+import {emitAsync, getUserFromChannel, getDMChannelName} from './utils.js';
 import * as keys from './keys.js';
 
 export const socket = io();
-
 
 
 const daata = {
@@ -39,6 +39,7 @@ const daata = {
         }
     }
 }
+changeMainPanel(document.getElementById('t-chatBox'))
 await cacheCheck();
 if (!await db.retrievePrivateKey()) {
     keys.regenKeys();
@@ -79,9 +80,6 @@ async function cacheCheck() {
     updateEncryptedInfo('Complete!')
 }
 
-//   .then(reg => console.log('sw registered', reg))
-//   .catch(err => console.error('sw registration failed', err));
-
 
 async function subscribeToPush() {
     const json = await fetch('/api/notificationKey')
@@ -121,11 +119,7 @@ function urlBase64ToUint8Array(base64String) {
     return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
-export function getUserFromChannel() {
-    const list = states.channel.replace('@', '').split('-')
-        list.splice(list.indexOf(getUsername()), 1); const user = list[0];
-        return user;
-}
+
 
 export async function regetKey() { 
     document.getElementById('message-input').placeholder = 'say something...';
@@ -142,7 +136,7 @@ export async function regetKey() {
         key_ = Uint8Array.from(atob(key_), c => c.charCodeAt(0));
         key_ = await window.crypto.subtle.importKey('spki', key_, {name: 'RSA-OAEP', hash: 'SHA-256'}, true, ['encrypt'])
         states.setKey(key_)
-        updateEncryptedInfo('end-to-encrypted (RSA)')
+        updateEncryptedInfo('end-to-end encrypted (RSA)')
         return;
     }
     key_ = await db.getKey(states.channel)
@@ -150,6 +144,7 @@ export async function regetKey() {
         keys.fetchKey(states.channel);
         states.setKeySearching(true);
     } else {
+        console.log('key found!')
         updateEncryptedInfo('end-to-end encrypted (AES-GCM)')
         states.setKey(key_);
     }
@@ -157,7 +152,7 @@ export async function regetKey() {
 window.refreshKey = regetKey;
 
 document.getElementById('regen-keys').onclick = async () => {
-    regenKeys();
+    keys.regenRSAKeys();
 }
 var cropper;
 document.getElementById('pfp-file-input').onchange = async (e) => {
@@ -227,6 +222,7 @@ export const encryptOpts = {
             channel: channel,
             iv: encrypted[1]
         }
+        console.log('sending..', message_obj)
         if (fileId !== null) {
             message_obj.attachments = [fileId]
         } 
@@ -273,26 +269,12 @@ export const encryptOpts = {
 
 
 
-function renderChannelHistory(dmCallback, callback) {
-    const history = messagesLib.getChannelHistory();
-    if (history === null) return
-    for (const [channel, status] of Object.entries(history)) {
-        if (status === false) continue;
-        if (channel.startsWith('@')) {
-            messagesLib.newDirectMessageChannel(channel.replace('@', ''), async () => {
-                await changeMessageBox(channel)
-            })
-        } else {
-            messagesLib.newChannel(channel, async () => {
-                await changeMessageBox(channel)
-            })
-        }
-    }
-}
+
 var timeout;
 export async function changeMessageBox(channelName) {
+    changeMainPanel(document.getElementById('t-chatBox'));
     updateEncryptedInfo('Finding brood metadata...')
-    socket.emit('typing', {channel: states.channel, prevEntered: true})
+    if (states.channel) socket.emit('typing', {channel: states.channel, prevEntered: true})
     clearTimeout(timeout)
     document.getElementById('typing-indicator').style.display = 'none';
     messagesLib.undoAllActiveChannels();
@@ -327,17 +309,9 @@ export async function changeMessageBox(channelName) {
 }
 
 
-export function getDMChannelName(user) {
-    if (user.localeCompare(getUsername()) < 0) {
-        return `@${user}-${getUsername()}`
-    } else {
-        return`@${getUsername()}-${user}`
-    }
-}
 
+checkUser();
 
-    checkUser();
-    // getMessages1();
 async function checkUser() {
     const username = (await (await fetch('me')).json()).username
     const valid = await pfpValid(username)
@@ -365,14 +339,6 @@ export async function getMessages1() {
 
 
 
-document.querySelector('.hamburger').onclick = () => {
-    document.querySelector('.sidebar').style.transform = 'none';
-}
-
-document.querySelector('.sidebar-disable').onclick = () => {
-    document.querySelector('.sidebar').style.transform = 'translateX(-100%)';
-}
-
 
 function unreact(emoji, messageID, channel) {
     socket.emit('unreact', {id: states.selectedMessageID, reaction: emoji, channel: channel})
@@ -381,10 +347,7 @@ function unreact(emoji, messageID, channel) {
 
 
 
-export function emitAsync(socket, event, data) {
-  return new Promise((resolve) => {
-    socket.emit(event, data, resolve)
-  })
-}
-linkEventListeners(socket);
+
+
+linkDefaultEventListeners(socket);
 linkSocket(socket)

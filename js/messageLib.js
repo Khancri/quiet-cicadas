@@ -225,6 +225,9 @@ function react(id, channel, emoji, user, action, socket, messageObj) {
     } else {
         peopleReacted = reactionEl.dataset.peopleReacted.split(',');
     }
+    if (peopleReacted.length === 0) {
+        return;
+    }
     console.log(action)
     if (action === 'remove') {
         peopleReacted.splice(peopleReacted.indexOf(user), 1);

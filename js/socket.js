@@ -109,14 +109,7 @@ export default function linkSocket(socket) {
 
     socket.on('message_reacted', (data) => {
         console.log(data)
-        messagesLib.react(data['id'], states.channel, data['reaction'], data['user'], data['action'], socket);
+        messagesLib.react(data.id, states.channel, data['reaction'], data['user'], data['action'], socket);
         db.updateReactions(data['id'], data['reaction'], data['user'], states.channel, data['action'])
-    })
-
-    socket.on('direct_message', async (data) => {
-        const privKey = await db.retrievePrivateKey();
-        if (privKey === null) {alert('NOOOO TRUMP'); return;}
-        const decrypted = await RSA.receiveMessage(data, privKey);
-        alert(new TextDecoder().decode(decrypted));
     })
 }

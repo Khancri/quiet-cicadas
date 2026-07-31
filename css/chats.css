@@ -242,10 +242,11 @@ body {
     border: 1px solid var(--border);
     background: var(--bg2);
     z-index: 50;
+    gap: .4rem;
     padding: .4rem;
     width: min-content;
 }
-.emoji-context {
+#context button {
     background: transparent;
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -256,7 +257,7 @@ body {
     cursor: pointer;
     white-space: nowrap;
 }
-.emoji-context:hover {
+#context button:hover {
     border-color: var(--accent);
     color: var(--accent);
 }

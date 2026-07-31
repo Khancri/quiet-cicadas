@@ -1,9 +1,11 @@
-(A) 2026-07-24 fix reactions not being cacheable and not removable @js @bug +chat 
+(A+) 2026-07-27 
+(A) 2026-07-26 NOTIFICATION BADGES WE NEED THEM BADBADBADBADBAD @htmlcssjs +chat
 (B) 2026-07-17 custom stickers @htmlcssjs +chat note:stickers
 (D) 2026-07-24 transfer message history @jspy +chat
 (E) 2026-07-29 add favorable quotes to keep me going +feelbetter
 (E) 2026-07-24 :emojiname: @htmlcssjs +chat
 (Z) 2026-07-13 servers due:2026-08-01 @htmlcssjs +vital
+x 2026-07-26 (A) 2026-07-24 fix reactions not being cacheable and not removable @js @bug +chat 
 x 2026-07-25 (A) 2026-07-25 cache attachments @js +chat
 
 

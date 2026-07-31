@@ -77,7 +77,16 @@ document.getElementById('attachment-input').onchange = (e) => {
 
     const preview = document.getElementById('attachment-preview');
     preview.hidden = false;
-    preview.innerHTML = `<span>${file.name}</span><span class="remove">✕</span>`;
+    preview.textContent = '';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = file.name;
+
+    const removeSpan = document.createElement('span');
+    removeSpan.className = 'remove';
+    removeSpan.textContent = '✕';
+
+    preview.append(nameSpan, removeSpan);
     preview.querySelector('.remove').onclick = () => {
         states.setPendingAttachments(null);
         preview.hidden = true;
@@ -146,6 +155,16 @@ document.querySelector('.emoji-context').addEventListener('click', () => {
     open(document.querySelector('.emoji-context'), {id: states.selectedMessageID, socket: socket, channel: states.channel})
     // socket.emit('react', {id: states.selectedMessageID, reaction: prompt('emoji? '), channel: states.channel})
 })
+
+
+document.querySelector('.hamburger').onclick = () => {
+    document.querySelector('.sidebar').style.transform = 'none';
+}
+
+document.querySelector('.sidebar-disable').onclick = () => {
+    document.querySelector('.sidebar').style.transform = 'translateX(-100%)';
+}
+
 
 messageInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
