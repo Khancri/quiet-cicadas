@@ -12,15 +12,53 @@ import uuid
 import emoji
 from secrets import token_urlsafe
 import bcrypt
-import json; import os
+import json; import os;
+import sqlite3
 
 app = Flask(__name__, static_folder='.')
 socketio = flask_socketio.SocketIO(app, cors_allowed_origins="*")
 app.secret_key = 'R5m9SAXRxLwERafXLj5hqW4qru98NhWz'
 CORS(app)
 
+conn = sqlite3.connect('.db', check_same_thread=False)
+curs = conn.cursor()
+
+curs.executescript("""
+    PRAGMA foreign_keys = ON;
+    CREATE TABLE IF NOT EXISTS profiles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP   ,
+        username VARCHAR(30) UNIQUE,
+        password TEXT,
+        public_key TEXT,
+        bio TEXT,
+        pronouns VARCHAR(25),
+        display_name VARCHAR(35),
+        status VARCHAR(100)
+    );
+
+    CREATE TABLE IF NOT EXISTS channel_keys (
+        channel_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        username VARCHAR(30),
+        FOREIGN KEY (username) REFERENCES profiles(username)
+    );
+
+    CREATE TABLE IF NOT EXISTS cache (
+        id TEXT,
+        contents BLOB,
+        iv BLOB,
+        time TIMESTAMP,
+        channel TEXT,
+        sender VARCHAR(30),
+        destination VARCHAR(30),
+        type TEXT,
+        metadata TEXT
+    )
+""")
+
 tokens = {}
-user_sockets = {}  # username → socket id
+user_sockets = {}
 rooms = {}
 
 os.makedirs('./pfps/', exist_ok=True)
@@ -30,6 +68,19 @@ os.makedirs('./data/bin/', exist_ok=True)
 
 
 #region Utils
+
+def db_execute(query, params=(), fetch=None, commit=False):
+    with sqlite3.connect('.db') as conn:
+        conn.execute('PRAGMA foreign_keys = ON')
+        curs = conn.cursor()
+        curs.execute(query, params)
+        if commit:
+            conn.commit()
+        if fetch == 'one':
+            return curs.fetchone()
+        if fetch == 'all':
+            return curs.fetchall()
+
 def getChannel(channel: str, username: str):
     if channel.startswith('@'):
         channel = channel[1:]
@@ -84,58 +135,57 @@ def claim_attachment(id, username):
 
 def saveToCache(type, data, person, id, channel):
     if type == 'reaction':
-        store = load(f'store_{person}.json')
-        if 'reactions' not in store.keys():
-            store['reactions'] = {}
+        print(data, id)
         data['channel'] = channel
-        store['reactions'][id] = data
-        save(f'store_{person}.json', store)
+        
+        db_execute('INSERT INTO cache (id, contents, channel, sender, destination, type, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    (data['id'], data['reaction'].encode(), channel, data['user'], person, type, data['action']), commit=True)
         return
     if type == 'msg':
-        iv: bytes = data['iv']
-        ivHash = hashlib.sha1(iv).hexdigest()
-        data['iv'] = ivHash
-        with open(f'data/bin/{ivHash}', 'wb+') as f:
-            f.write(iv)
-            f.close()
-    content: bytes = data['content']
-    
-    contentHash = hashlib.sha256(content).hexdigest()
-    
-    with open(f'data/bin/{contentHash}', 'wb+') as f:
-        f.write(content)
-        f.close()
-    
-    store = load(f'store_{person}.json')
-    data['content'] = contentHash
-    data['channel'] = channel
-    store[id] = data
-    save(f'store_{person}.json', store)
+        db_execute('INSERT INTO cache (id, contents, iv, time, channel, sender, destination, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                    (id, data['content'], data['iv'], data['date'], channel, data['user'], person, type), commit=True)
+    else:
+        db_execute('INSERT INTO cache (id, contents, time, sender, destination, type) VALUES (?, ?, ?, ?, ?, ?)',
+                    (id, data['content'], data['date'], data['user'], person, type), commit=True)
         
 
 def loadWholeCache(person):
-    store = load(f'store_{person}.json')
-    if store == {}: return {}
-    end = {}
-    for key, value in store.items():
-        iv_bytes = None
-        if 'iv' in value.keys():
-            iv_path = f"data/bin/{value['iv']}"
-            with open(iv_path, 'rb') as f:
-                iv_bytes = f.read()
-            os.remove(iv_path)
-        content_path = f"data/bin/{value['content']}"
+    store = db_execute('SELECT * FROM cache WHERE destination = ?', (person,), fetch='all')
+    if store == None:
+        return {}
+    
+    print(store)
 
-        with open(content_path, 'rb') as f:
-            content_bytes = f.read()
+    cache = []
 
-        os.remove(content_path)
-
-        end[key] = {**value, 'iv': iv_bytes, 'content': content_bytes}
-    os.remove(f'data/store_{person}.json')
-    return end
-
-
+    for row in store:
+        if row[7] == 'msg':
+            cache.append({
+                'id': row[0],
+                'content': row[1],
+                'iv': row[2],
+                'date': row[3],
+                'channel': row[4],
+                'user': row[5],
+            })
+        if row[7] == 'dmsg':
+            cache.append({
+                'id': row[0],
+                'content': row[1],
+                'date': row[3],
+                'user': row[5],
+            })
+        if row[7] == 'reaction':
+            cache.append({
+                'id': row[0],
+                'content': row[1].decode(),
+                'user': row[5],
+                'channel': row[4],
+                'action': row[-1]
+            })
+    print(cache)
+    db_execute('DELETE FROM cache WHERE destination = ?', (person,), commit=True)
+    return cache
 #endregion
 
 #region HTML Endpoints
@@ -236,8 +286,10 @@ VAPID_CLAIMS = {
 def login():
     info = request.json
     username = info['username']; password = info['password'];
-    oldPassword = load('profiles.json')[username]['password']
-    if (bcrypt.checkpw(password.encode('utf-8'), oldPassword.encode())):
+    oldPassword = db_execute('SELECT password FROM profiles WHERE username = ?', (username,), fetch='one')
+    if oldPassword == None:
+        return jsonify({'ok': False})
+    if (bcrypt.checkpw(password.encode('utf-8'), oldPassword[0].encode())):
         session['username'] = username
         return jsonify({'ok': True})
     return jsonify({'ok': False})
@@ -327,9 +379,8 @@ def logout():
 
 @app.route('/delete-account')
 def delete_account():
-    profiles = load('profiles.json')
-    del profiles[session['username']]
-    save('profiles.json', profiles)
+    db_execute('DELETE FROM channel_keys WHERE username = ?', (session['username'],), commit=True)
+    db_execute('DELETE FROM profiles WHERE username = ?', (session['username'],), commit=True)
     session.clear()
     return '', 200
 
@@ -343,10 +394,12 @@ def signup():
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
     key = info['publicKey']
     print(key)
-    profileObj = {'username': username, 'password': hashed.decode(), 'key': key, 'displayName': username, 'dateCreated': datetime.now().isoformat()}
-    file = load('profiles.json')
-    file[username] = profileObj
-    save('profiles.json' , file)
+    db_execute(
+            'INSERT INTO profiles (username, password, display_name, public_key) VALUES (?, ?, ?, ?)',
+            (username, hashed.decode(), username, key), commit=True
+        )
+
+
     session['username'] = username
     return '', 204
 
@@ -354,9 +407,8 @@ def signup():
 
 @app.route('/profile/exists/<string:username>', methods=['GET'])
 def exising_username(username: str):
-    if username in load('profiles.json').keys():
-        return jsonify({'ok': True})
-    return jsonify({'ok': False})
+    exists = db_execute("SELECT 1 FROM profiles WHERE username = ?", (username,), fetch='one') is not None
+    return jsonify({'ok': exists})
     
 @app.route('/profile/view/<string:userName>')
 def view_profile(userName: str):
@@ -397,45 +449,59 @@ def post_message(data):
     if 'attachments' in data.keys():
         message_obj['attachmentId'] = data['attachments'][0]
     print(message_obj)
-    people = load('keys.json')[data['channel']]['users']
+    people = db_execute('SELECT username FROM channel_keys WHERE name = ?', (data['channel'],), fetch='all')
+    if people == None:
+        raise LookupError('how is this possible')
+    print(user_sockets)
     for person in people:
-        if person in user_sockets.keys():
-            socketio.emit('new_message', {hash: message_obj}, to=user_sockets[person])
+        if person[0] in user_sockets.keys():
+            print(f'sent to {person}')
+            socketio.emit('new_message', {hash: message_obj}, to=user_sockets[person[0]])
             continue
-        saveToCache('msg', message_obj, person, hash, data['channel'])
+        saveToCache('msg', message_obj, person[0], hash, data['channel'])
         
 @socketio.on('react')
 def react(data): # {channel, id, reaction}
     if not emoji.is_emoji(data['reaction']):
         return '', 400
-    print(data['channel'], data['id'])
-    socketio.emit('message_reacted', {
-        'id': data['id'],
-        'reaction': data['reaction'],
-        'user': session['username'],
-        'action': 'add'
-    }, to=data['channel'])
-    print(data['channel'])
-
-@socketio.on('fweh')
-def fweh(data):
-    print(data)
-    socketio.emit('trump please save us', to=data['channel'])
-
-@socketio.on('unreact')
-def unreact(data):
-    people = load('keys.json')[data['channel']]['users']
     reaction_obj = {
         'id': data['id'],
         'reaction': data['reaction'],
         'user': session['username'],
+        'action': 'add',
+        'channel': data['channel']
+    }
+    print(reaction_obj, data)
+    people = db_execute('SELECT username FROM channel_keys WHERE name = ?', (data['channel'],), fetch='all')
+    if people == None: return
+    for person in people:
+        if person[0] in user_sockets.keys():
+            socketio.emit('message_reacted', reaction_obj, to=user_sockets[person[0]]);
+            continue
+        saveToCache('reaction', reaction_obj, person[0], hash, data['channel'])
+    # socketio.emit('message_reacted', {
+    #     'id': data['id'],
+    #     'reaction': data['reaction'],
+    #     'user': session['username'],
+    #     'action': 'remove'
+    # }, to=data['channel']);
+
+@socketio.on('unreact')
+def unreact(data):
+    people = db_execute('SELECT username FROM channel_keys WHERE name = ?', (data['channel'],), fetch='all')
+    if people == None: return
+    reaction_obj = {
+        'id': data['id'],
+        'reaction': data['reaction'],
+        'user': session['username'],
+        'channel': data['channel'],
         'action': 'remove'
     }
     for person in people:
-        if person in user_sockets.keys():
-            socketio.emit('message_reacted', reaction_obj, to=user_sockets[person]);
+        if person[0] in user_sockets.keys():
+            socketio.emit('message_reacted', reaction_obj, to=user_sockets[person[0]]);
             continue
-        saveToCache('reaction', reaction_obj, person, hash, data['channel'])
+        saveToCache('reaction', reaction_obj, person[0], hash, data['channel'])
     socketio.emit('message_reacted', {
         'id': data['id'],
         'reaction': data['reaction'],
@@ -445,24 +511,14 @@ def unreact(data):
 
 @socketio.on('forgetkey')
 def forget_key(data):
-    file = load('keys.json')
-    if not data['channel'] in file.keys(): return
-    if not 'users' in file[data['channel']].keys(): return
-    l: list = file[data['channel']]['users']
-    file[data['channel']]['users'].pop(l.index(session['username']))
-    save('keys.json', file)
-    return {'ok': True}
+    channel = data['channel']
+    db_execute('DELETE FROM channel_keys WHERE name = ? AND username = ?', 
+                     (channel, session['username']), commit=True)
 
 @socketio.on('keyupdate')
 def update_key_list(data):
-    file = load('keys.json')
-    if not data['channel'] in file.keys():
-        file[data['channel']] = {}
-    if not 'users' in file[data['channel']].keys():
-        file[data['channel']]['users'] = [];
-    if session['username'] in file[data['channel']]['users']: return
-    file[data['channel']]['users'].append(session['username'])
-    save('keys.json', file)
+    channel = data['channel']
+    db_execute('INSERT INTO channel_keys (name, username) VALUES (?, ?)', (channel, session['username']), commit=True)
 
 @socketio.on('cachegrab')
 def cacheGrab(a):
@@ -510,10 +566,10 @@ def direct_message(data):
 
 @socketio.on('public_key_request')
 def key_request(data):
-    user = data['user']
-    if user in load('profiles.json').keys():
-        return load('profiles.json')[user]['key']
-    return None
+    key = db_execute('SELECT public_key FROM profiles WHERE username = ?', (data['user'],), fetch='one')
+    if key == None:
+        return None
+    return key[0]
 
 @socketio.on('request_key')
 def request_key(data): # data: user, channel
@@ -534,25 +590,19 @@ def request_key_complete(data):
 
 @socketio.on('channel_users')
 def get_users_with_key(data):
-    file = load('keys.json')
-    print(file)
-    if file == {}:
-        return {'list': None}
-    if not data['channel'] in file.keys():
-        return {'list': None}
-    users: list  = file[data['channel']]['users'] 
+    users = db_execute('SELECT username FROM channel_keys WHERE name = ?', (data['channel'],), fetch='all')
     if users == None:
         return {'list': None}
     active = []
     for user in users:
-        if user in user_sockets.keys():
-            active.append(user)
+        if user[0] in user_sockets.keys():
+            active.append(user[0])
     
-    if len(list(active)) == 0:
-        for user in users:
-            current_token = token_urlsafe(24)
-            tokens[current_token] = {'hit': False, 'type': 'keypass', 'metadata': {'user': session['username'], 'channel': data['channel']}}
-            send_push(user, 'help out a fellow cicada?', 'share your key so they can chat!', f'/keypass?t={current_token}')
+    # if len(list(active)) == 0:
+    #     for user in users:
+    #         current_token = token_urlsafe(24)
+    #         tokens[current_token] = {'hit': False, 'type': 'keypass', 'metadata': {'user': session['username'], 'channel': data['channel']}}
+    #         send_push(user, 'help out a fellow cicada?', 'share your key so they can chat!', f'/keypass?t={current_token}')
 
     return {'list': list(active)}
 typing = {}
@@ -589,28 +639,24 @@ def vhange_typing(data):
 @socketio.on('rsa-key-regen')
 def updatePublicKey(data):
     publicKey = data['publicKey']
-    dw = load('profiles.json')
-    dw[session['username']]['key'] = publicKey
-    save('profiles.json', dw)
+    db_execute('UPDATE profiles SET public_key = ? WHERE username = ?', (publicKey, session['username']), commit=True)
 
 @socketio.on('profile-update')
 def updateProfile(data):
-    profiles = load('profiles.json')
-    profile = profiles[session['username']]
+    if data == {}: return
     if 'bio' in data.keys():
-        profile['bio'] = data['bio']
+        db_execute('UPDATE profiles SET bio = ? WHERE username = ?', (data['bio'], session['username']), commit=True)
     if 'pronouns' in data.keys():
-        profile['pronouns'] = data['pronouns']
+        db_execute('UPDATE profiles SET pronouns = ? WHERE username = ?', (data['pronouns'], session['username']), commit=True)
     if 'displayName' in data.keys():
-        profile['displayName'] = data['displayName']
-    profiles[session['username']] = profile
-    save('profiles.json', profiles)
+        db_execute('UPDATE profiles SET display_name = ? WHERE username = ?', (data['displayName'], session['username']), commit=True)
 
 @socketio.on('view-profile')
 def viewProfile(data):
-    profile = load('profiles.json')[data['user']]
-    del profile['key']; del profile['password']; del profile['username']
-    return profile  
+    profile = db_execute('SELECT join_date, bio, pronouns, display_name, status FROM profiles WHERE username = ?', (session['username'],), fetch='one')
+    if profile == None: return None
+    returnVal = {'dateCreated': profile[0], 'pronouns': profile[2], 'bio': profile[1], 'displayName': profile[3], 'status': profile[4]}
+    return returnVal
 
 @socketio.on('friend_request')
 def friend_request(data):

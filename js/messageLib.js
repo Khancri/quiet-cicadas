@@ -4,30 +4,25 @@ import * as states from './state.js'
 import { pfpValid, showProfileModal } from "./profiles.js";
 import { decryptMessage } from "./crypto.js";
 import { getAttachment, isUnread, retrievePrivateKey, saveAttachment } from "./db.js";
-import { changeMessageBox } from "./chats.js";
+import { changeMessageBox, socket } from "./chats.js";
 import { getDMChannelName } from "./utils.js";
 import { createNotificationBadge } from "./ui.js";
 
 async function createMessage(data, id, channel, socket) {
-    var message = document.createElement('div');
-    message.classList.add('message');
+    var message = document.getElementById('t-message').content.cloneNode(true).childNodes[1];
     const stripped = data['content'].replace(/\s/g, '');
-
+    console.log(message, '|', data)
     const isEmoji = /^\p{Emoji}+$/u.test(stripped);
     if (isEmoji) {
         message.classList.add('emoji-message');
     }
-    message.dataset.id = id;
     
-    const pfp = document.createElement('div');
-    pfp.classList.add('avatar');
-    message.appendChild(pfp);
+    const pfp = message.querySelector('.avatar');
     pfp.style.backgroundImage = `url(/pfp/${data.user})`;
     pfp.style.backgroundSize = 'cover';
-
-    const content = document.createElement('div');
-    content.classList.add('content');
-    message.appendChild(content);
+    
+    const content = message.querySelector('.content');
+    
     message.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         states.setSelectedMessageID(id);
@@ -40,13 +35,12 @@ async function createMessage(data, id, channel, socket) {
             menu.style.display = 'none';
         }, {once: true})
     })
+    
+    message.dataset.id = id;
+    const metadata = message.querySelector('.metadata');
 
-    const metadata = document.createElement('div');
-    metadata.classList.add('metadata');
-    content.appendChild(metadata);
-
-    const usernameEl = document.createElement('b');
-    usernameEl.classList.add('username'); usernameEl.innerText = data.user;
+    const usernameEl = message.querySelector('.username');
+    usernameEl.innerText = data.user;
     usernameEl.onclick = async (e) => {
         const { pageX: x, pageY: y } = event;
         e.stopPropagation();
@@ -59,20 +53,14 @@ async function createMessage(data, id, channel, socket) {
         await showProfileModal(data.user, clickEvent, {x, y}, socket)
         document.addEventListener('click', clickEvent);
     };
-    const dataEl = document.createElement('span');
+    const dataEl = message.querySelector('.date');
     const date = new Date(data.date);
-    dataEl.classList.add('date'); dataEl.innerText =  date.toLocaleString();
-    metadata.appendChild(usernameEl); metadata.appendChild(dataEl);
+    dataEl.innerText =  date.toLocaleString();
 
-    const messageContent = document.createElement('span');
-    messageContent.classList.add('messageContent'); messageContent.innerText = data.content;
-    content.appendChild(messageContent);
+    const messageContent = message.querySelector('.messageContent');
+    messageContent.innerText = data.content;
 
-    const reactionRow = document.createElement('div');
-    reactionRow.className = 'reaction-row';
-    content.appendChild(reactionRow);
-
-
+    
     if (data.attachmentId) {
         const attachEl = document.createElement('div');
         attachEl.className = 'attachment';
@@ -202,19 +190,16 @@ async function loadAttachment(id, el, channel) {
     messages.scrollTop = messages.scrollHeight; 
 }
 
-function react(id, channel, emoji, user, action, socket, messageObj) {
+function react(id, channel, emoji, user, action, messageObj) {
+    console.log('args', id, channel, emoji, user, action, messageObj)
+    
     const messages = document.querySelector('.messages');
     if (!messageObj) {
         messageObj = document.querySelector(`[data-id="${id}"]`)
     }
-    const reactionRow = messageObj.querySelector('.reaction-row') ?? document.createElement('div');
+    const reactionRow = messageObj.querySelector('.reaction-row') 
+    reactionRow.hidden = false;
     const reactionEl = reactionRow.querySelector(`[data-emoji="${encodeURIComponent(emoji)}"]`) ?? document.createElement('div'); 
-    var counter;
-    if (messageObj.querySelector(`[data-emoji="${encodeURIComponent(emoji)}"]`) !== null) {
-        counter = parseInt(reactionEl.querySelector('.counter').innerText, 10); 
-    } else {
-        counter = 0;
-    }
     reactionRow.className = 'reaction-row'
     reactionEl.className = 'reaction'; reactionEl.dataset.emoji = encodeURIComponent(emoji);
     // // reactionEl.title = messageObj.reactions[emoji].join(', ')
@@ -225,9 +210,7 @@ function react(id, channel, emoji, user, action, socket, messageObj) {
     } else {
         peopleReacted = reactionEl.dataset.peopleReacted.split(',');
     }
-    if (peopleReacted.length === 0) {
-        return;
-    }
+    console.log(peopleReacted)
     console.log(action)
     if (action === 'remove') {
         peopleReacted.splice(peopleReacted.indexOf(user), 1);
@@ -237,6 +220,10 @@ function react(id, channel, emoji, user, action, socket, messageObj) {
     if (peopleReacted.includes('')) {
         peopleReacted.splice(peopleReacted.indexOf(''), 1)
     }
+    console.log(peopleReacted)
+    if (peopleReacted.length === 0) {
+        return;
+    }
     reactionEl.innerHTML = `<span class="emoji">${emoji}</span><span class="counter">${peopleReacted.length}</span>`
     reactionEl.dataset.peopleReacted = peopleReacted.join(',')
     reactionEl.title = peopleReacted.join(', ')
@@ -244,9 +231,11 @@ function react(id, channel, emoji, user, action, socket, messageObj) {
         reactionEl.classList.add('self-reacted')
     }
     reactionEl.onclick = () => {
+        console.log(`reaction ${emoji} as been pressed !! did we react? `, peopleReacted.includes(getUsername()))
         if (peopleReacted.includes(getUsername())) {
             socket.emit('unreact', {id: id, reaction: emoji, channel: channel})
         } else {
+            console.log('reaciton el', {id: id, reaction: emoji, channel: channel})
             socket.emit('react', {id: id, reaction: emoji, channel: channel})
         }
     };  
@@ -260,45 +249,30 @@ function react(id, channel, emoji, user, action, socket, messageObj) {
 
 
 async function renderMessages(data, overwrite = false, channel, socket) {
-    console.log(data)
+    console.log('render messages args', data, overwrite, channel, socket)
     const sorted = Object.entries(data).sort((a, b) => new Date(a[1].date) - new Date(b[1].date));
     const div = document.getElementById('messages')
     for (let i = 0; i < sorted.length; i++) {
         const [key, value] = sorted[i];
+        console.log('value:', value)
         const prev = i > 0 ? sorted[i - 1][1] : null;
         const message = document.querySelector(`[data-id="${key}"]`);
-        if (message === null) {
-            const el = await createMessage(value, key, channel, socket);
-            const lastMessage = div.lastElementChild;
-            const lastUser = lastMessage?.querySelector('.username')?.innerText;
+        if (message !== null) { return; }
+        const el = await createMessage(value, key, channel, socket);
+        const lastMessage = div.lastElementChild;
+        const lastUser = lastMessage?.querySelector('.username')?.innerText;
 
-            if (lastUser === value.user) {
-                el.classList.add('grouped');
-                lastMessage.classList.add('grouped-head')
-            }
-            div.appendChild(el);
-            
-            if (value.reactions) {
-                for (const [emoji, array] of Object.entries(value.reactions)) {
-                    for (const user of array) {
-                        react(key, channel, emoji, user, 'add', socket);
-                    }
-                }
-            }
-        } 
-        else if (overwrite === true) {
-            var reactionRow = message.querySelector('.reaction-row')
-            console.log(value)
-            for (const el of reactionRow.querySelectorAll('.reaction')) {
-                if (!value.reactions[el.dataset.emoji]) {
-                    el.remove();
-                }
-            }
+        if (lastUser === value.user) {
+            el.classList.add('grouped');
+            lastMessage.classList.add('grouped-head')
+        }
+        div.appendChild(el);
+        
+        if (value.reactions) {
             for (const [emoji, array] of Object.entries(value.reactions)) {
-                if (reactionRow.querySelector(`.reaction[data-emoji=\"${emoji}\"]`)) {
-                    reactionRow.querySelector(`.reaction[data-emoji=\"${emoji}\"] > span.counter`).innerText = array.length;
-                } else {
-                    reactionRow = react({[key]: value}, channel, emoji, socket, message)
+                for (const user of array) {
+                    console.log('render messages channel', channel)
+                    react(key, channel, emoji, user, 'add');
                 }
             }
         }

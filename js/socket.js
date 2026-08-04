@@ -75,6 +75,14 @@ export default function linkSocket(socket) {
     socket.on('new_message', async (message) => {
         console.log(`channel from ${message[Object.keys(message)[0]].channel}`, message)
         if (message[Object.keys(message)[0]].channel === states.channel) {
+            console.log(message, states.key)
+            if (typeof message[Object.keys(message)[0]].content === 'string') {
+                message[Object.keys(message)[0]].content = Uint8Array.from(atob(message[Object.keys(message)[0]].content), c => c.charCodeAt(0)).buffer;
+            }
+            if (typeof message[Object.keys(message)[0]].iv === 'string') {
+                message[Object.keys(message)[0]].iv = Uint8Array.from(atob(message[Object.keys(message)[0]].iv), c => c.charCodeAt(0));
+            }
+            console.log(message)
             message[Object.keys(message)[0]].content = new TextDecoder().decode(await cryptoAPI.decryptMessage(message[Object.keys(message)[0]].content, message[Object.keys(message)[0]].iv, states.key))
             await messagesLib.renderMessages(message, false, message[Object.keys(message)[0]].channel, socket); 
         } else {
@@ -109,7 +117,9 @@ export default function linkSocket(socket) {
 
     socket.on('message_reacted', (data) => {
         console.log(data)
-        messagesLib.react(data.id, states.channel, data['reaction'], data['user'], data['action'], socket);
-        db.updateReactions(data['id'], data['reaction'], data['user'], states.channel, data['action'])
+        if (data.channel == states.channel) {
+            messagesLib.react(data.id, data.channel, data.reaction, data.user, data.action);
+        }
+        db.updateReactions(data.id, data.reaction, data.user, data.channel, data.action)
     })
 }

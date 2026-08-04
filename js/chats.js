@@ -10,14 +10,16 @@ import { getUsername, updateInfo } from './userInfo.js';
 import { twemoji } from './twemoji.js';
 import * as db from './db.js'
 import { pfpValid } from './profiles.js';
-import { changeMainPanel, updateEncryptedInfo, renderChannelHistory  } from './ui.js';
+import { changeMainPanel, updateEncryptedInfo, renderChannelHistory, createNotificationBadge  } from './ui.js';
 import * as states from './state.js'
 import linkSocket from './socket.js'
 import {linkDefaultEventListeners} from './events.js';
 import {emitAsync, getUserFromChannel, getDMChannelName} from './utils.js';
 import * as keys from './keys.js';
 
-export const socket = io();
+export const socket = io({ transports: ['websocket'],
+  forceBase64: false  });
+console.log(socket.io.engine.transport.name)
 
 
 const daata = {
@@ -42,7 +44,7 @@ const daata = {
 changeMainPanel(document.getElementById('t-chatBox'))
 await cacheCheck();
 if (!await db.retrievePrivateKey()) {
-    keys.regenKeys();
+    keys.regenRSAKeys();
 }
 
 renderChannelHistory(); 
@@ -55,27 +57,28 @@ await changeMessageBox('general');
 async function cacheCheck() {
     updateEncryptedInfo('Grabbing Cache..')
     const cache = await emitAsync(socket, 'cachegrab')
-    console.log(cache);
-    for (const [id, value] of Object.entries(cache)) {
-        if (id === 'reactions') {
-            console.log('loading reactions')
-            for (const [id, value] of Object.entries(cache)) {
-                messagesLib.react(id, value.channel, data.reaction, data.user, data.action, socket)
-            }
-            continue
+    console.log('cache', cache);
+    for (const obj of cache) {
+        if (obj.action) {
+            db.updateReactions(obj.id, obj.content, obj.user, obj.channel, obj.action)
+            return;
         }
         var channel;
-        if (value.iv === null) {
-            value.content = new TextDecoder().decode(await RSA.receiveMessage(value.content, await db.retrievePrivateKey()))
-            states.setChannel(value.channel.replace('@', '').replace(getUsername(), '').replace('-', ''));
+        if (!obj.iv) {
+            obj.content = new TextDecoder().decode(await RSA.receiveMessage(obj.content, await db.retrievePrivateKey()))
+            createNotificationBadge(getDMChannelName(obj.user))
         } else {
-            console.log(value);
-            states.setChannel(value.channel);
-            value.content = new TextDecoder().decode(await cryptoAPI.decryptMessage(value.content, value.iv, await db.getKey(channel)))
+            console.log(obj);
+            states.setChannel(obj.channel);
+            const channelKey = await db.getKey(obj.channel)
+            console.log(channelKey)
+            obj.content = new TextDecoder().decode(await cryptoAPI.decryptMessage(obj.content, obj.iv, channelKey))
+            db.addUnread(obj.channel)
+            console.log(obj.channel)
         }
-
-        console.log(value.channel)
-        await db.saveMessages({[id]:value}, value.channel)
+        const id = obj.id
+        const saveChannel = obj.channel ?? getDMChannelName(obj.user)
+        await db.saveMessages({[id]:obj}, saveChannel)
     }
     updateEncryptedInfo('Complete!')
 }
@@ -331,7 +334,9 @@ async function checkUser() {
 }
 
 export async function getMessages1() {
+    console.log('getting messages..')
     var data = await db.getMessages(states.channel);
+    console.log(data)
     if (!data || Object.keys(data).length === 0) return;
     await messagesLib.renderMessages(data, false, states.channel, socket);
 }

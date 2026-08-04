@@ -15,13 +15,14 @@ export async function createNotificationBadge(channel) {
     if (channel.startsWith('@')) {
         const user = getUserFromChannel(channel);
         console.log(`notification from ${user}`, channel)
+        console.log(`[data-user-data="${encodeURIComponent(user)}"]`)
         let el = document.querySelector(`[data-user-data="${encodeURIComponent(user)}"]`)
         if (!el) {
-            await newDirectMessageChannel(user, async () => {
+            await messagesLib.newDirectMessageChannel(user, async () => {
                 await changeMessageBox(`@${user}`)
             })
+            el = document.querySelector(`[data-user-data="${encodeURIComponent(user)}"]`)
         }
-        el = document.querySelector(`[data-user-data="${encodeURIComponent(user)}"]`)
         el.classList.add('notify')
         return;
     }
@@ -49,10 +50,15 @@ export function renderChannelHistory() {
     for (const [channel, status] of Object.entries(history)) {
         if (status === false) continue;
         if (channel.startsWith('@')) {
+            console.log('channel history', `[data-user-data="${encodeURIComponent(channel.replace('@', ''))}"]`)
+            let el = document.querySelector(`[data-user-data="${encodeURIComponent(channel.replace('@', ''))}"]`)
+            if (el) continue;
             messagesLib.newDirectMessageChannel(channel.replace('@', ''), async () => {
                 await changeMessageBox(channel)
             })
         } else {
+            let el = document.querySelector(`[data-channel-data="${encodeURIComponent(channel)}"]`)
+            if (el) continue;
             messagesLib.newChannel(channel, async () => {
                 await changeMessageBox(channel)
             })

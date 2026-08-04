@@ -59,6 +59,7 @@ function buildPickerDOM(data, opts) {
             btn.textContent = e.char;
             btn.title = e.name;
             btn.addEventListener('click', () => {
+                console.log('emoji picker click options: ', opts)
                 if (opts.targetInput !== undefined) {
                     insertText(opts.targetInput, e.char);
                 } else {

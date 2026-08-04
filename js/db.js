@@ -174,7 +174,7 @@ export async function clearChannel(channel) {
     });
 }
 export async function obliterate() {
-    localStorage.clear();
+    localStorage.clear();   
     indexedDB.databases().then((dbs) => {
         dbs.forEach((db) => {
             indexedDB.deleteDatabase(db.name);
@@ -183,26 +183,25 @@ export async function obliterate() {
 }
 
 export async function updateReactions(id, reaction, user, channel, action) {
+    if (!channel) return
+    console.log('updateReactions: ', id, reaction, user, channel, action)
     const messages = await getMessages(channel)
     console.log(messages);
     const message = messages[id]
     console.log(message);
-    if (message === undefined) {
-        return;
-    }
-    if (!Object.hasOwn(message, 'reactions')) {
-        message.reactions = {};
-    }
+    if (message === undefined) return;
+    if (!Object.hasOwn(message, 'reactions')) message.reactions = {};
     console.log(message);
-    if (!Object.hasOwn(message.reactions, reaction)) {
-        message.reactions[reaction] = [];
-    }
+    if (!Object.hasOwn(message.reactions, reaction)) message.reactions[reaction] = [];
     if (action === 'remove') {
+        if (!message.reactions[reaction].includes(user)) return;
         message.reactions[reaction].splice(message.reactions[reaction].indexOf(user), 1)
     } else {
-    message.reactions[reaction].push(user);
+        if (message.reactions[reaction].includes(user)) return;
+        message.reactions[reaction].push(user);
     }
-    
+    if (message.reactions[reaction].length === 0) delete message.reactions[reaction]
+    console.log('updated:', message)
     await saveMessages({[id]: message}, channel);
     console.log(message)
 }
