@@ -1,7 +1,8 @@
-import { changeMessageBox } from "./chats.js";
+import { changeMessageBox, socket } from "./chats.js";
 import { addUnread } from "./db.js";
 import * as events from './events.js';
 import * as messagesLib from "./messageLib.js";
+import { showProfileModal } from "./profiles.js";
 import * as states from "./state.js";
 import { getDMChannelName, getUserFromChannel } from "./utils.js";
 
@@ -30,9 +31,9 @@ export async function createNotificationBadge(channel) {
     if (!el) return
     el.classList.add('notify')
 }
-export function changeMainPanel(template) {
+export function changeMainPanel(template, clean = false) {
     const mainPanel = document.getElementById('mainPanel');
-    if (mainPanel.dataset.name === template.id) return;
+    if (mainPanel.dataset.name === template.id && clean === false) return;
     mainPanel.dataset.name = template.id
     const id = template.id
     template = template.content.cloneNode(true);
@@ -66,33 +67,72 @@ export function renderChannelHistory() {
     }
 }
 
+export function createFriendRequest(user) {
+    if (document.querySelector(`.friendRequest [data-friend-data="${encodeURIComponent(`@${user}`)}"]`) !==null) {
+        return;
+    }
+    const friendRequestEl = document.querySelector('#t-friendRequest').content.cloneNode(true).childNodes[1]
+    console.log(friendRequestEl)
+    friendRequestEl.querySelector('span').innerText = user;
+
+    friendRequestEl.querySelector('img').src = `/pfp/${user}`
+
+    friendRequestEl.querySelector('button[data-action="accept"]').onclick = () => {
+        socket.emit('friend_request', {user: user, action: 'accept'})
+        friendRequestEl.remove();
+        createFriendRanking(user)
+    }
+    friendRequestEl.querySelector('button[data-action="decline"]').onclick = () => {
+        socket.emit('friend_request', {user: user, action: 'decline'})
+    }
+    friendRequestEl.onclick = (e) => showProfileModal(user, e, {x: e.pageX, y:e.pageY})
+    friendRequestEl.dataset.friendData = encodeURIComponent(user);
+    friendRequestEl.addEventListener('mouseenter', (e) => {
+        friendRequestEl.querySelector('[data-action="accept"]').style.opacity = 1
+        friendRequestEl.querySelector('[data-action="decline"]').style.opacity = 1
+    });
+    friendRequestEl.addEventListener('mouseleave', (e) => {
+        friendRequestEl.querySelector('[data-action="accept"]').style.opacity = 0;
+        friendRequestEl.querySelector('[data-action="decline"]').style.opacity = 0;
+    });
+    document.querySelector('#requests').appendChild(friendRequestEl);
+    document.querySelector('#requests').hidden = false;
+}
 
 export function createFriendRanking(user) {
-    if (document.querySelector(`[data-friend-data="${encodeURIComponent(`@${user}`)}"]`) !==null) {
-        undoAllActiveChannels();
-        document.querySelector(`[data-friend-data="${encodeURIComponent(user)}"]`).classList.add('active');
+    if (document.querySelector(`.friendRanking [data-friend-data="${encodeURIComponent(`@${user}`)}"]`) !==null) {
         return;
     }
 
-    const channelRanking = document.querySelector('#t-friendRanking').content.cloneNode(true);
+    const channelRanking = document.querySelector('#t-friendRanking').content.cloneNode(true).childNodes[1];
     channelRanking.querySelector('span').innerText = user;
+    channelRanking.onclick = async (e) => {
+        const { pageX: x, pageY: y } = e;
+        e.stopPropagation();
+        const prof = document.getElementById('profile')
+        const clickEvent = (e) => {
+            if (e.target.closest('#profile')) return;
+            prof.style.display = 'none';
+            document.removeEventListener('click', clickEvent);
+        };
+        await showProfileModal(user, clickEvent, {x, y})
+        document.addEventListener('click', clickEvent);
+    };
     
     channelRanking.querySelector('.message-user').onclick = () => {
         changeMessageBox(`@${user}`)
     }
 
     channelRanking.querySelector('img').src = `/pfp/${user}`
-
+    
+    channelRanking.dataset.friendData = encodeURIComponent(user);
+    channelRanking.addEventListener('mouseenter', (e) => {
+        channelRanking.querySelector('.message-user').style.opacity = 1
+    });
+    channelRanking.addEventListener('mouseleave', (e) => {
+        channelRanking.querySelector('.message-user').style.opacity = 0;
+    });
     console.log(channelRanking);
     document.querySelector('#friendsList').appendChild(channelRanking);
-
-    const list = document.querySelectorAll('#friendsList > .friendRanking');
-    list[list.length-1].dataset.friendData = encodeURIComponent(user);
-    list[list.length-1].addEventListener('mouseenter', (e) => {
-        list[list.length-1].querySelector('.message-user').style.opacity = 1
-    });
-    list[list.length-1].addEventListener('mouseleave', (e) => {
-        list[list.length-1].querySelector('.message-user').style.opacity = 0;
-    });
-    console.log(list[list.length-1]);
+    document.querySelector('#friendsList').hidden = false;
 }

@@ -41,21 +41,21 @@ const daata = {
         }
     }
 }
-changeMainPanel(document.getElementById('t-chatBox'))
+changeMainPanel(document.getElementById('t-friendsList'))
 await cacheCheck();
 if (!await db.retrievePrivateKey()) {
     keys.regenRSAKeys();
 }
 
-renderChannelHistory(); 
-messagesLib.newChannel('general', async () => {
-    changeMessageBox('general')
-});
+// renderChannelHistory(); 
+// messagesLib.newChannel('general', async () => {
+//     changeMessageBox('general')
+// });
 
-await changeMessageBox('general');
-
+// await changeMessageBox('general');
+states.setChannel('general')
 async function cacheCheck() {
-    updateEncryptedInfo('Grabbing Cache..')
+    // updateEncryptedInfo('Grabbing Cache..')
     const cache = await emitAsync(socket, 'cachegrab')
     console.log('cache', cache);
     for (const obj of cache) {
@@ -80,7 +80,7 @@ async function cacheCheck() {
         const saveChannel = obj.channel ?? getDMChannelName(obj.user)
         await db.saveMessages({[id]:obj}, saveChannel)
     }
-    updateEncryptedInfo('Complete!')
+    // updateEncryptedInfo('Complete!')
 }
 
 

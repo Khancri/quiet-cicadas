@@ -27,7 +27,7 @@ curs.executescript("""
     PRAGMA foreign_keys = ON;
     CREATE TABLE IF NOT EXISTS profiles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP   ,
+        join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         username VARCHAR(30) UNIQUE,
         password TEXT,
         public_key TEXT,
@@ -54,7 +54,21 @@ curs.executescript("""
         destination VARCHAR(30),
         type TEXT,
         metadata TEXT
-    )
+    );
+
+    CREATE TABLE IF NOT EXISTS friend_request (
+        sender VARCHAR(30),
+        receiver VARCHAR(30),
+        FOREIGN KEY (sender) REFERENCES profiles(username),
+        FOREIGN KEY (receiver) REFERENCES profiles(username)
+    );
+    CREATE TABLE IF NOT EXISTS friends (
+        person1 VARCHAR(30),
+        person2 VARCHAR(30),
+        date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (person1) REFERENCES profiles(username),
+        FOREIGN KEY (person2) REFERENCES profiles(username)
+    );
 """)
 
 tokens = {}
@@ -653,34 +667,45 @@ def updateProfile(data):
 
 @socketio.on('view-profile')
 def viewProfile(data):
-    profile = db_execute('SELECT join_date, bio, pronouns, display_name, status FROM profiles WHERE username = ?', (session['username'],), fetch='one')
+    profile = db_execute('SELECT join_date, bio, pronouns, display_name, status FROM profiles WHERE username = ?', (data['user'],), fetch='one')
     if profile == None: return None
     returnVal = {'dateCreated': profile[0], 'pronouns': profile[2], 'bio': profile[1], 'displayName': profile[3], 'status': profile[4]}
+    friend = db_execute('SELECT 1 FROM friends WHERE person1 = ? AND person2 = ?', (session['username'], data['user']), fetch='one') != None
+    if friend:
+        returnVal['friend'] = True
     return returnVal
 
 @socketio.on('friend_request')
 def friend_request(data):
-    action = data['action']
-    if action == 'list':
-        return load('requests.json')
-    user = data['user']
-    key = getChannel(f'@{user}', session['username'])
-    if action == 'add':
-        data = load('requests.json')
-        data[key] = {
-            'status': 'pending',
-            'receiver': user
-        }
-        data['_cache']
-        save('requests.json', data)
-    if action == 'accept':
-        data = load('requests.json')
-        data[key]['status'] = 'accepted'
-        save('requests.json', data)
-    if action == 'decline':
-        data = load('requests.json')
-        data[key]['status'] = 'declined'
-        save('requests.json', data)
+    match data['action']:
+        case 'add':
+            if db_execute('SELECT 1 FROM friend_request WHERE sender = ? AND receiver = ?', (session['username'], data['user']), fetch='one') != None: return
+            db_execute('INSERT INTO friend_request (sender, receiver) VALUES (?, ?)', (session['username'], data['user']), commit=True)
+        case 'decline':
+            db_execute('DELETE FROM friend_request WHERE sender = ? AND receiver = ?', (data['user'], session['username']), commit=True)
+        case 'accept':
+            db_execute('DELETE FROM friend_request WHERE sender = ? AND receiver = ?', (data['user'], session['username']), commit=True)
+            db_execute('INSERT INTO friends (person1, person2) VALUES (?, ?)', (session['username'], data['user']), commit=True)
+            db_execute('INSERT INTO friends (person1, person2) VALUES (?, ?)', (data['user'], session['username']), commit=True)
+        case 'remove':
+            db_execute('DELETE FROM friends WHERE person1 = ? AND person2 = ?', (session['username'], data['user']))
+            db_execute('DELETE FROM friends WHERE person2 = ? AND person1 = ?', (session['username'], data['user']))
+
+@socketio.on('view_friends')
+def view_friends(none):
+    friends = db_execute('SELECT person2 FROM friends WHERE person1 = ?', (session['username'],), fetch='all')
+    if friends == None:
+        friends = []
+    requests = db_execute('SELECT sender FROM friend_request WHERE receiver = ?', (session['username'],), fetch='all')
+    if requests == None:
+            requests = []
+    returnVal = {'friends': [], 'requests': []}
+    for friend in friends:
+        returnVal['friends'].append(friend[0])
+    for request in requests:
+            returnVal['requests'].append(request[0])
+    return returnVal
+
 
 if __name__ == '__main__':  
     socketio.run(app, host  ='0.0.0.0', port=443, ssl_context=('cert.pem', 'key.pem'))

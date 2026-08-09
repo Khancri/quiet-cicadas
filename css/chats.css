@@ -644,15 +644,15 @@ flex-shrink: 0;
 }
 
 .dm-item.notify .avatar-sm {
-background: var(--burgundy);
-color: white;
+    background: var(--burgundy);
+    color: white;
 }
 .dm-item.notify span {
     color: var(--amber);
     font-weight: bold;
 }
 
-.friendRanking {
+.friendRanking, .friendRequest {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -664,10 +664,58 @@ color: white;
     border-radius: 4px;
     margin: 0 6px;
 }
-.friendRanking:hover, .friendRanking.active {
+.friendRanking:hover, .friendRanking.active, .friendRequest:hover, .friendRequest.active {
     background: var(--bg3);
     color: var(--text);
 }
 #friendsList {
     margin: .5rem 0;
+}
+h2 {font-size: 15px;}
+
+input[type='text'] {
+    background: var(--bg2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: .25rem;
+    border-radius: .5rem;
+}
+input[type='text']::placeholder {
+    color: var(--text-muted);
+}
+#friend-request-field {
+    flex: 1;
+    height:100%;
+}
+#add-friend {
+    display: flex;
+    flex-direction: row;
+    margin: .75rem .5rem;
+    width: 100%;
+    padding:.25rem;
+    font-size: 20px;
+    align-items: center;
+    justify-content: center;
+}
+hr {
+    border: 0;
+    height: 20px;
+    background: url('../svg/moss-hr.svg') repeat-x center;
+    width: 90%;
+    background-size: 163px 59px;
+    margin: 0 auto;
+}
+#add-friend .button {
+    height:100%;
+    background: var(--bg2);
+    border-style: solid;
+    transition: all .1s ease-in;
+}
+#add-friend .button:hover svg { stroke: var(--accent) }
+#add-friend svg {
+    stroke: var(--moss);
+    transition: all .1s ease-in;
+    /* padding: .25rem; */
+    width: 25px;
+    height: auto;
 }

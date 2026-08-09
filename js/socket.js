@@ -122,4 +122,5 @@ export default function linkSocket(socket) {
         }
         db.updateReactions(data.id, data.reaction, data.user, data.channel, data.action)
     })
+
 }

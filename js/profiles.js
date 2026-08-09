@@ -1,12 +1,12 @@
+import { socket } from "./chats.js";
 import { getUsername } from "./userInfo.js";
-
 function emitAsync(socket, event, data) {
   return new Promise((resolve) => {
     socket.emit(event, data, resolve)
   })
 }
 
-export async function showProfileModal(username, clickEvent, position, socket) {
+export async function showProfileModal(username, clickEvent, position) {
     const data = await emitAsync(socket, 'view-profile', {user: username})
     console.log(data);
     const prof = document.getElementById('profile');
@@ -22,8 +22,15 @@ export async function showProfileModal(username, clickEvent, position, socket) {
     glowWrap.style.setProperty('--glow-pfp', `url(/pfp/${username})`);
     if (username === getUsername()) prof.querySelector('.button').hidden = true;
     else prof.querySelector('.button').hidden = false;
-    prof.querySelector('.button').onclick = () => {
-        socket.emit('friend_request', {user: username, action: 'add'})
+    if (data.friend) {
+        prof.querySelector('.button').innerText = 'remove friend'
+        prof.querySelector('.button').onclick = () => {
+            socket.emit('friend_request', {user: username, action: 'remove'})
+        }
+    } else {
+        prof.querySelector('.button').onclick = () => {
+            socket.emit('friend_request', {user: username, action: 'add'})
+        }
     }
 
     prof.style.display = 'flex';
@@ -76,32 +83,3 @@ export async function pfpValid(username) {
     return [true]
 }
 
-
-export async function generateAvatarCanvas(username, size = 200) {
-    const bytes = new Uint8Array(
-        await crypto.subtle.digest("SHA-256", new TextEncoder().encode(username.toLowerCase().trim()))
-    );
-
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
-
-    ctx.fillStyle = '#141814';
-    ctx.fillRect(0, 0, size, size);
-
-    const cell = size / 4;
-    ctx.font = `${cell * 0.6}px monospace`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fontWeight = 'bold';
-
-    for (let i = 0; i < 16; i++) {
-        const row = Math.floor(i / 4);
-        const col = i % 4;
-        ctx.fillStyle = PALETTE[bytes[i + 16] % PALETTE.length];
-        ctx.fillText(POOL[bytes[i] % POOL.length], col * cell + cell / 2, row * cell + cell / 2);
-    }
-
-    return canvas;
-}

@@ -6,7 +6,7 @@ import { getUsername } from './userInfo.js';
 import { open } from './emojiPicker.js';
 import {socket} from './chats.js';
 import { emitAsync, getDMChannelName, getUserFromChannel } from './utils.js';
-import { changeMainPanel, createFriendRanking } from './ui.js';
+import { changeMainPanel, createFriendRanking, createFriendRequest } from './ui.js';
 export function linkDefaultEventListeners() {
     document.getElementById('logout').onclick = async () => {
         const thing = await fetch('logout', {method: 'POST'});
@@ -98,10 +98,17 @@ document.getElementById('direct-message').onclick = async () => {
     chats.getMessages1();
 }
 
-document.querySelector('.header .dot.g').onclick = () => {
+document.querySelector('.header .dot.g').onclick = async () => {
     messagesLib.undoAllActiveChannels();
-    changeMainPanel(document.getElementById('t-friendsList'));
-    createFriendRanking('khancri')
+    changeMainPanel(document.getElementById('t-friendsList'), true);
+    const entries = await emitAsync(socket, 'view_friends')
+    console.log(entries)
+    for (const friend of entries.friends) {
+        createFriendRanking(friend);
+    }
+    for (const request of entries.requests) {
+        createFriendRequest(request);
+    }
 }
 
 
@@ -222,5 +229,7 @@ document.getElementById('attachment-input').onchange = (e) => {
 
 export function friendsList() {
     messageInput = undefined;
-    
+    document.getElementById('friend-request-button').onclick = () => {
+        socket.emit('friend_request', {action: 'add', user: document.getElementById('friend-request-field').value.trim()})
+    }
 }
