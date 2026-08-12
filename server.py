@@ -401,18 +401,19 @@ def delete_account():
 @app.route('/signup', methods=['POST'])
 def signup():
     info = request.json
-    print(info)
     username = info['username']
     password = info['password']
+    key = info['publicKey']
 
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-    key = info['publicKey']
-    print(key)
-    db_execute(
+
+    try:
+        db_execute(
             'INSERT INTO profiles (username, password, display_name, public_key) VALUES (?, ?, ?, ?)',
             (username, hashed.decode(), username, key), commit=True
         )
-
+    except sqlite3.IntegrityError:
+        return {'error': 'username taken'}, 409
 
     session['username'] = username
     return '', 204
