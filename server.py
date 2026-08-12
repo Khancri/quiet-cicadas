@@ -13,11 +13,13 @@ import emoji
 from secrets import token_urlsafe
 import bcrypt
 import json; import os;
+from dotenv import load_dotenv
+load_dotenv()
 import sqlite3
 
 app = Flask(__name__, static_folder='.')
-socketio = flask_socketio.SocketIO(app, cors_allowed_origins="*")
-app.secret_key = 'R5m9SAXRxLwERafXLj5hqW4qru98NhWz'
+socketio = flask_socketio.SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
+app.secret_key = os.environ['session_key']
 CORS(app)
 
 conn = sqlite3.connect('.db', check_same_thread=False)

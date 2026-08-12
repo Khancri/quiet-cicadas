@@ -5,3 +5,4 @@ svg/twemoji
 data/
 *.db
 *.ps1
+*.env
