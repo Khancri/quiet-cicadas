@@ -1,5 +1,5 @@
-# import eventlet
-# eventlet.monkey_patch() 
+import eventlet
+eventlet.monkey_patch() 
 from pywebpush import webpush, WebPushException
 from flask import Flask, jsonify, request, send_from_directory, session, send_file, redirect, abort
 from datetime import datetime
@@ -708,4 +708,4 @@ def view_friends(none):
 
 
 if __name__ == '__main__':  
-    socketio.run(app, host  ='0.0.0.0', port=443, ssl_context=('cert.pem', 'key.pem'))
+    socketio.run(app, host  ='0.0.0.0', port=5000)
