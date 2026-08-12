@@ -82,6 +82,19 @@ export function createFriendRequest(user) {
         friendRequestEl.remove();
         createFriendRanking(user)
     }
+    friendRequestEl.onclick = async (e) => {
+        const { pageX: x, pageY: y } = e;
+        e.stopPropagation();
+        const prof = document.getElementById('profile')
+        const clickEvent = (e) => {
+            if (e.target.closest('#profile')) return;
+            if (e.target.closest('button')) return;
+            prof.style.display = 'none';
+            document.removeEventListener('click', clickEvent);
+        };
+        await showProfileModal(user, clickEvent, {x, y})
+        document.addEventListener('click', clickEvent);
+    };
     friendRequestEl.querySelector('button[data-action="decline"]').onclick = () => {
         socket.emit('friend_request', {user: user, action: 'decline'})
     }
@@ -112,6 +125,7 @@ export function createFriendRanking(user) {
         const prof = document.getElementById('profile')
         const clickEvent = (e) => {
             if (e.target.closest('#profile')) return;
+            if (e.target.closest('button')) return;
             prof.style.display = 'none';
             document.removeEventListener('click', clickEvent);
         };
