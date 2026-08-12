@@ -1,5 +1,5 @@
-import eventlet
-eventlet.monkey_patch() 
+from gevent import monkey
+monkey.patch_all()
 from pywebpush import webpush, WebPushException
 from flask import Flask, jsonify, request, send_from_directory, session, send_file, redirect, abort
 from datetime import datetime
