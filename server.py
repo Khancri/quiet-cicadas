@@ -23,8 +23,8 @@ app = Flask(__name__, static_folder='.')
 socketio = flask_socketio.SocketIO(app, cors_allowed_origins=[
     "https://quietcicadas.duckdns.org",
     "wss://quietcicadas.duckdns.org",
-    "http://localhost:5000"
-    "ws://localhost:5000"
+    "http://localhost:8000"
+    "ws://localhost:8000"
 ], async_mode='gevent')
 app.secret_key = os.environ['session_key']
 CORS(app)
@@ -763,4 +763,4 @@ def view_friends(none):
 
 
 if __name__ == '__main__':  
-    socketio.run(app, host  ='0.0.0.0', port=5000)
+    socketio.run(app, host  ='0.0.0.0', port=8000)
