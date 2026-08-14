@@ -5,6 +5,7 @@ from flask import Flask, jsonify, request, send_from_directory, session, send_fi
 from datetime import datetime
 from flask_cors import CORS
 import flask_socketio
+import re
 import hashlib
 import base64
 from flask_socketio import join_room, leave_room
@@ -12,15 +13,22 @@ import uuid
 import emoji
 from secrets import token_urlsafe
 import bcrypt
+from functools import wraps
 import json; import os;
 from dotenv import load_dotenv
 load_dotenv()
 import sqlite3
 
 app = Flask(__name__, static_folder='.')
-socketio = flask_socketio.SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
+socketio = flask_socketio.SocketIO(app, cors_allowed_origins=[
+    "https://quietcicadas.duckdns.org",
+    "wss://quietcicadas.duckdns.org",
+    "http://localhost:5000"
+    "ws://localhost:5000"
+], async_mode='gevent')
 app.secret_key = os.environ['session_key']
 CORS(app)
+app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 25mb, tweak as needed
 
 conn = sqlite3.connect('.db', check_same_thread=False)
 curs = conn.cursor()
@@ -84,6 +92,15 @@ os.makedirs('./data/bin/', exist_ok=True)
 
 
 #region Utils
+
+
+def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if 'username' not in session:
+            return {'error': 'not authenticated'}, 401
+        return f(*args, **kwargs)
+    return wrapper
 
 def db_execute(query, params=(), fetch=None, commit=False):
     with sqlite3.connect('.db') as conn:
@@ -226,14 +243,19 @@ def get_file(name):
         return send_from_directory('.', folders[0])
     return send_from_directory(f'./{'/'.join(folders[:-1])}', folders[-1])
 
+USERNAME_RE = re.compile(r'^[a-zA-Z0-9_-]{1,30}$')
+
 @app.route('/pfp/<string:username>')
 def get_pfp(username):
+    if not USERNAME_RE.match(username):
+        return '', 404
     path = f'pfps/{username}'
     if os.path.exists(path):
-        return send_file(path);
+        return send_file(path)
     return '', 404
 
 @app.route('/pfp', methods=['POST'])
+@login_required
 def upload_pfp():
     file = request.files['pfp']
     os.makedirs('pfps', exist_ok=True)
@@ -241,6 +263,7 @@ def upload_pfp():
     return '', 204
 
 @app.route('/api/upload', methods=['POST'])
+@login_required
 def upload_file():
     file = request.files['file']
     key = None
@@ -274,6 +297,7 @@ def upload_file():
     return jsonify({'id': hash})
 
 @app.route('/api/attachment/<string:hash>')
+@login_required
 def get_attachment(hash):
     data = claim_attachment(hash, session['username'])
     if data is None:
@@ -347,6 +371,7 @@ def notification_key():
     return jsonify({'key': raw_b64url})
 
 @app.route('/api/subscribe', methods=['POST'])
+@login_required
 def subscribe():
     # return redirect('https://scrollx.org')
     sub_data = request.get_json()
@@ -394,6 +419,7 @@ def logout():
     return '', 204
 
 @app.route('/delete-account')
+@login_required
 def delete_account():
     db_execute('DELETE FROM channel_keys WHERE username = ?', (session['username'],), commit=True)
     db_execute('DELETE FROM profiles WHERE username = ?', (session['username'],), commit=True)
@@ -406,6 +432,11 @@ def signup():
     username = info['username']
     password = info['password']
     key = info['publicKey']
+
+    if not USERNAME_RE.match(username):
+        return {'error': 'invalid username'}, 400
+    if not password or len(password) < 8:
+        return {'error': 'password too short'}, 400
 
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
 
@@ -423,11 +454,13 @@ def signup():
 
 
 @app.route('/profile/exists/<string:username>', methods=['GET'])
+@login_required
 def exising_username(username: str):
     exists = db_execute("SELECT 1 FROM profiles WHERE username = ?", (username,), fetch='one') is not None
     return jsonify({'ok': exists})
     
 @app.route('/profile/view/<string:userName>')
+@login_required
 def view_profile(userName: str):
     file = load('profiles.json')
     if not file[userName]:
@@ -453,6 +486,7 @@ def on_join(data):
     join_room(data["room"])
 
 @socketio.on('message')
+@login_required
 def post_message(data):
     print(data)
     hash = str(uuid.uuid4())
@@ -478,6 +512,7 @@ def post_message(data):
         saveToCache('msg', message_obj, person[0], hash, data['channel'])
         
 @socketio.on('react')
+@login_required
 def react(data): # {channel, id, reaction}
     if not emoji.is_emoji(data['reaction']):
         return '', 400
@@ -504,6 +539,7 @@ def react(data): # {channel, id, reaction}
     # }, to=data['channel']);
 
 @socketio.on('unreact')
+@login_required
 def unreact(data):
     people = db_execute('SELECT username FROM channel_keys WHERE name = ?', (data['channel'],), fetch='all')
     if people == None: return
@@ -527,21 +563,25 @@ def unreact(data):
     }, to=data['channel']);
 
 @socketio.on('forgetkey')
+@login_required
 def forget_key(data):
     channel = data['channel']
     db_execute('DELETE FROM channel_keys WHERE name = ? AND username = ?', 
                      (channel, session['username']), commit=True)
 
 @socketio.on('keyupdate')
+@login_required
 def update_key_list(data):
     channel = data['channel']
     db_execute('INSERT INTO channel_keys (name, username) VALUES (?, ?)', (channel, session['username']), commit=True)
 
 @socketio.on('cachegrab')
+@login_required
 def cacheGrab(a):
     return loadWholeCache(session['username'])
 
 @socketio.on('direct_message')
+@login_required
 def handle_direct_message(data):
     to_username = data['to']
     payload = data['payload']
@@ -557,6 +597,7 @@ def findSID(handle):
     return None
 
 @socketio.on('dm')
+@login_required
 def direct_message(data):
     to = data['to']
     payload = data['payload']
@@ -582,6 +623,7 @@ def direct_message(data):
     return message_obj
 
 @socketio.on('public_key_request')
+@login_required
 def key_request(data):
     key = db_execute('SELECT public_key FROM profiles WHERE username = ?', (data['user'],), fetch='one')
     if key == None:
@@ -589,6 +631,7 @@ def key_request(data):
     return key[0]
 
 @socketio.on('request_key')
+@login_required
 def request_key(data): # data: user, channel
     print(data)
     if 'user' in data.keys():
@@ -600,12 +643,14 @@ def request_key(data): # data: user, channel
         
 
 @socketio.on('request_key_complete')
+@login_required
 def request_key_complete(data):
     to_sid = user_sockets.get(data['user'])
     if to_sid:
         socketio.emit('request_key_complete', data['payload'], to=to_sid)
 
 @socketio.on('channel_users')
+@login_required
 def get_users_with_key(data):
     users = db_execute('SELECT username FROM channel_keys WHERE name = ?', (data['channel'],), fetch='all')
     if users == None:
@@ -629,6 +674,7 @@ def keypass():
     return send_from_directory('html', 'keypass.html')
 
 @app.route('/api/token/<string:token>')
+@login_required
 def process_token(token):
     if (not token in tokens.keys()) or (tokens[token]['hit'] == True):
         return '', 403
@@ -637,6 +683,7 @@ def process_token(token):
     return res
 
 @socketio.on('typing')
+@login_required
 def vhange_typing(data):
     global typing
     channel = getChannel(data['channel'], session['username'])
@@ -654,11 +701,13 @@ def vhange_typing(data):
     socketio.emit('typing', typing[channel], to=channel)
 
 @socketio.on('rsa-key-regen')
+@login_required
 def updatePublicKey(data):
     publicKey = data['publicKey']
     db_execute('UPDATE profiles SET public_key = ? WHERE username = ?', (publicKey, session['username']), commit=True)
 
 @socketio.on('profile-update')
+@login_required
 def updateProfile(data):
     if data == {}: return
     if 'bio' in data.keys():
@@ -669,6 +718,7 @@ def updateProfile(data):
         db_execute('UPDATE profiles SET display_name = ? WHERE username = ?', (data['displayName'], session['username']), commit=True)
 
 @socketio.on('view-profile')
+@login_required
 def viewProfile(data):
     profile = db_execute('SELECT join_date, bio, pronouns, display_name, status FROM profiles WHERE username = ?', (data['user'],), fetch='one')
     if profile == None: return None
@@ -679,6 +729,7 @@ def viewProfile(data):
     return returnVal
 
 @socketio.on('friend_request')
+@login_required
 def friend_request(data):
     match data['action']:
         case 'add':
@@ -695,6 +746,7 @@ def friend_request(data):
             db_execute('DELETE FROM friends WHERE person2 = ? AND person1 = ?', (session['username'], data['user']))
 
 @socketio.on('view_friends')
+@login_required
 def view_friends(none):
     friends = db_execute('SELECT person2 FROM friends WHERE person1 = ?', (session['username'],), fetch='all')
     if friends == None:
