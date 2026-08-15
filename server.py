@@ -23,7 +23,7 @@ app = Flask(__name__, static_folder='.')
 socketio = flask_socketio.SocketIO(app, cors_allowed_origins=[
     "https://quietcicadas.duckdns.org",
     "wss://quietcicadas.duckdns.org",
-    "http://localhost:8000"
+    "http://localhost:8000",
     "ws://localhost:8000"
 ], async_mode='gevent')
 app.secret_key = os.environ['session_key']
@@ -101,10 +101,10 @@ def login_required(f):
             return {'error': 'not authenticated'}, 401
         return f(*args, **kwargs)
     return wrapper
-
 def db_execute(query, params=(), fetch=None, commit=False):
-    with sqlite3.connect('.db') as conn:
+    with sqlite3.connect('.db', timeout=5) as conn:
         conn.execute('PRAGMA foreign_keys = ON')
+        conn.execute('PRAGMA journal_mode = WAL')
         curs = conn.cursor()
         curs.execute(query, params)
         if commit:
@@ -113,7 +113,7 @@ def db_execute(query, params=(), fetch=None, commit=False):
             return curs.fetchone()
         if fetch == 'all':
             return curs.fetchall()
-
+        
 def getChannel(channel: str, username: str):
     if channel.startswith('@'):
         channel = channel[1:]
@@ -454,7 +454,6 @@ def signup():
 
 
 @app.route('/profile/exists/<string:username>', methods=['GET'])
-@login_required
 def exising_username(username: str):
     exists = db_execute("SELECT 1 FROM profiles WHERE username = ?", (username,), fetch='one') is not None
     return jsonify({'ok': exists})

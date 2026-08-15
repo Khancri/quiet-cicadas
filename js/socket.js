@@ -101,8 +101,12 @@ export default function linkSocket(socket) {
     socket.on('dm', async (message) => {
         const obj = message[Object.keys(message)[0]];
         console.log(`dm from ${obj.user}`, message)
+        if (typeof obj.content === 'string') {
+            obj.content = Uint8Array.from(atob(obj.content), c => c.charCodeAt(0)).buffer;
+        }
         const privKey = await db.retrievePrivateKey();
         obj.content = new TextDecoder().decode(await RSA.receiveMessage(obj.content, privKey))
+        
         if (states.channel === getDMChannelName(obj['user'])){
             await messagesLib.renderMessages(message, false, states.channel, socket); 
         } else{

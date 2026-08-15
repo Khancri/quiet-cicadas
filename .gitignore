@@ -6,3 +6,5 @@ data/
 *.db
 *.ps1
 *.env
+.db-shm
+.db-wal
