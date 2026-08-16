@@ -697,12 +697,16 @@ input[type='text']::placeholder {
     align-items: center;
     justify-content: center;
 }
+#that-one-container-for-rankings hr {
+    background-size: 60px 22px;
+    width: 90%
+}
 hr {
     border: 0;
     height: 20px;
     background: url('../svg/moss-hr.svg') repeat-x center;
-    width: 90%;
-    background-size: 163px 59px;
+    width: 99%;
+    background-size: 110px 39px;
     margin: 0 auto;
 }
 #add-friend .button {

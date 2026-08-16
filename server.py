@@ -659,11 +659,11 @@ def get_users_with_key(data):
         if user[0] in user_sockets.keys():
             active.append(user[0])
     
-    # if len(list(active)) == 0:
-    #     for user in users:
-    #         current_token = token_urlsafe(24)
-    #         tokens[current_token] = {'hit': False, 'type': 'keypass', 'metadata': {'user': session['username'], 'channel': data['channel']}}
-    #         send_push(user, 'help out a fellow cicada?', 'share your key so they can chat!', f'/keypass?t={current_token}')
+    if len(list(active)) == 0:
+        for user in users:
+            current_token = token_urlsafe(24)
+            tokens[current_token] = {'hit': False, 'type': 'keypass', 'metadata': {'user': session['username'], 'channel': data['channel']}}
+            send_push(user, 'help out a fellow cicada?', 'share your key so they can chat!', f'/keypass?t={current_token}')
 
     return {'list': list(active)}
 typing = {}
@@ -760,6 +760,6 @@ def view_friends(none):
             returnVal['requests'].append(request[0])
     return returnVal
 
-
 if __name__ == '__main__':  
+    print('runrun')
     socketio.run(app, host  ='0.0.0.0', port=8000)
