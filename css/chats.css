@@ -19,8 +19,8 @@ body {
     flex-shrink: 0;
 }
 .header .dots { display: flex; gap: 6px; }
-.header .dot  { width: 10px; height: 10px; border-radius: 50%; transition: all .25s linear;}
-.header .dot:hover  { transform: scale(1.1); }
+.header .dot  { width: 10px; height: 10px; border-radius: 50%; transition: all .15s ease-in;}
+.header .dot:hover  { transform: scale(1.4); }
 .header .dot.r { background: #7a4040; }
 .header .dot.y { background: #7a6a40; }
 .header .dot.g { background: var(--accent); opacity: .7; }

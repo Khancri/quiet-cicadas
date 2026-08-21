@@ -18,6 +18,7 @@
                     <div class="left">
                         <label for="username-input">pick a name</label>
                         <input type="text" id="username-input" placeholder="something to call you">
+                        <p id="username-invalid" hidden>Username is invalid. Can only contain alphanumeric characters including '-', '_'.</p>
                         <input type="file" id="pfp-input" accept="image/*">
                         <button id="username-submit">that's me →</button>
                     </div>
@@ -35,6 +36,7 @@
             <div class="slide" id="password-slide">
                 <label for="password-input" id="password-input-label">your passphrase</label>
                 <input type="password" id="password-input" placeholder="keep it secret">
+                <p id="password-invalid" hidden>Password isn't valid. Password must be atleast 8 characters long.</p>
                 <button id="password-submit">mhm →</button>
                 <div class="step-dots">
                     <div class="step-dot"></div>

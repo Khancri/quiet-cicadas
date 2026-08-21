@@ -66,6 +66,15 @@ document.getElementById('username-submit').onclick = async () => {
         console.log('ehre')
         pfp = cropper.getCroppedCanvas();
     }
+    console.log(username.match(/[^a-zA-Z0-9_-]{1,30}/g))
+    if (username.match(/[^a-zA-Z0-9_-]{1,30}/g)) {
+        document.getElementById('username-invalid').hidden = false;
+        document.getElementById('username-input').classList.add('r')
+        return;
+    } else {
+        document.getElementById('username-invalid').hidden = true;
+        document.getElementById('username-input').classList.remove('r')
+    }
     console.log(pfp);
     const exists = await (await fetch(`/profile/exists/${encodeURIComponent(username)}`)).json()
     console.log(exists.ok);
@@ -81,13 +90,16 @@ document.getElementById('username-submit').onclick = async () => {
             logIn();
         }
     } else {
+        
+
         document.getElementById('password-submit').onclick = async () => {
             password = document.getElementById('password-input').value;
             signUp()
         }
         document.getElementById('password-input').oninput = (e) => {
             if (e.key !== 'Enter') return;
-            password = document.getElementById('password-input').value;
+            const _input = document.getElementById('password-input').value;
+            
             signUp();
         }
     }
@@ -133,7 +145,12 @@ async function pfpUpload() {
 }
 
 async function signUp() {
+    document.getElementById('password-invalid').hidden = !(password.length < 8);
+    document.getElementById('password-input').classList.toggle('r', password.length < 8)
+    if (password.length < 8) return;
+
     const keys = await createKey();
+
     await savePrivateKey(keys.privateKey)
 
     const key = await window.crypto.subtle.exportKey('spki', keys.publicKey)
@@ -145,7 +162,7 @@ async function signUp() {
         body: JSON.stringify({ username, password, publicKey: b64 })
     });
     if (done.status != 204) {
-        alert('?? sum broke sorry bro');
+        alert('something unexpected happened, check request response');
         return;
     }
 

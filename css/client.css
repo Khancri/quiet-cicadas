@@ -175,3 +175,11 @@ h1 { display: none; }
 button {
     cursor: pointer;
 }
+
+#username-invalid, #password-invalid {
+    color: var(--burgundy);
+    font-size: 12px;
+}
+#username-input.r, #password-input.r {
+    border-color: var(--burgundy)
+}

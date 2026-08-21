@@ -27,6 +27,8 @@ socketio = flask_socketio.SocketIO(app, cors_allowed_origins=[
     "ws://localhost:8000"
 ], async_mode='gevent')
 app.secret_key = os.environ['session_key']
+
+VAPID_PRIVATE_KEY = os.environ['notification_key']
 CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 25mb, tweak as needed
 
@@ -317,9 +319,8 @@ def me():
         return jsonify({'ok': False})
     return jsonify({'username': session['username']})
 
-VAPID_PRIVATE_KEY = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQggBwlZDnZ2/91ru+/nTfm4TNYGzud9hpmc+zy110ET6mhRANCAARR59e12eymk1nCl1lJmzNt90xdhv4wXCxORL65jgFY55MX6Q/0bDlo247I2mSs+HYG3lhD0jg2UU3w2T9sfH39"
 VAPID_CLAIMS = {
-    "sub": "mailto:joeykhan0106@gmail.com"
+    "sub": "mailto:jadeitekhan0106@gmail.com"
 }
 
 @app.route('/login', methods=['POST'])
@@ -360,15 +361,15 @@ def save_subscription(handle, data):
 
 @app.route('/api/notificationKey')
 def notification_key():
-    der_key = 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUefXtdnsppNZwpdZSZszbfdMXYb+MFwsTkS+uY4BWOeTF+kP9Gw5aNuOyNpkrPh2Bt5YQ9I4NlFN8Nk/bHx9/Q=='
-    padded = der_key + '=' * (-len(der_key) % 4)
-    der_bytes = base64.urlsafe_b64decode(padded)
+    # der_key = 'MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgn8hsmZwHZ32+gMNV4EAvLWh5SuDllRXNWXiFSPthteChRANCAAQcsUEPoZ9nElkSWTERmw8YOsJB8MihBp1f1ht0kd8i3tBdR6ZwhcrYx8K1RwZ6xLVxRzt1WNfhStrZUSqDlko5'
+    # padded = der_key + '=' * (-len(der_key) % 4)
+    # der_bytes = base64.urlsafe_b64decode(padded)
 
-    raw_point = der_bytes[-65:]  # strip DER header, keep raw point
+    # raw_point = der_bytes[-65:]  # strip DER header, keep raw point
 
-    raw_b64url = base64.urlsafe_b64encode(raw_point).rstrip(b'=').decode()
-    print(raw_b64url)
-    return jsonify({'key': raw_b64url})
+    # raw_b64url = base64.urlsafe_b64encode(raw_point).rstrip(b'=').decode()
+    # print(raw_b64url)
+    return jsonify({'key': 'MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgn8hsmZwHZ32+gMNV4EAvLWh5SuDllRXNWXiFSPthteChRANCAAQcsUEPoZ9nElkSWTERmw8YOsJB8MihBp1f1ht0kd8i3tBdR6ZwhcrYx8K1RwZ6xLVxRzt1WNfhStrZUSqDlko5'})
 
 @app.route('/api/subscribe', methods=['POST'])
 @login_required
@@ -761,5 +762,7 @@ def view_friends(none):
     return returnVal
 
 if __name__ == '__main__':  
+    access_log = open('gevent_access.log', 'a')
+    error_log = open('gevent_error.log', 'a')
     print('runrun')
-    socketio.run(app, host  ='0.0.0.0', port=8000)
+    socketio.run(app, host  ='0.0.0.0', port=8000, log_output=True)

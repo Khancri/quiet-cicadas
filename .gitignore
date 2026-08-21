@@ -8,3 +8,4 @@ data/
 *.env
 .db-shm
 .db-wal
+*.log
