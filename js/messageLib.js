@@ -289,13 +289,17 @@ function closeChannel(channelName) {
     removeChannelFromHistory(channelName)
     channelRanking.remove();
 }
-
+function checkEmpty(t) {
+    console.log('here!', t.querySelectorAll('.dm-item').length)
+    t.querySelector('.empty').hidden = t.querySelectorAll('.dm-item').length >=1;
+}
 function newChannel(channelName, callback) {
     if (document.querySelector(`[data-channel-data="${encodeURIComponent(channelName)}"]`) !== null) {
         undoAllActiveChannels();
         document.querySelector(`[data-channel-data="${encodeURIComponent(channelName)}"]`).classList.add('active');
         return;
     };
+    checkEmpty(document.getElementById('channelList'))
     const channelRanking = document.querySelector('#t-channelRanking').content.cloneNode(true);
     channelRanking.querySelector('span').innerText = channelName;
     channelRanking.querySelector('.channel-exit').onclick = () => closeChannel(channelName)
@@ -307,6 +311,10 @@ function newChannel(channelName, callback) {
     list[list.length-1].dataset.channelData = encodeURIComponent(channelName);
     addChannelToHistory(channelName)
     if (isUnread(channelName)) createNotificationBadge(channelName)
+    setTimeout(() => {
+        checkEmpty(document.getElementById('channelList'))
+    },1);
+
 }
 
 async function newDirectMessageChannel(user, callback) {
@@ -342,6 +350,11 @@ async function newDirectMessageChannel(user, callback) {
 
     if (isUnread(getDMChannelName(user))) createNotificationBadge(getDMChannelName(user))
     addChannelToHistory(`@${user}`);
+
+    setTimeout(() => {
+        checkEmpty(document.getElementById('dmList'))
+    },1);
+
 }
 
 function undoAllActiveChannels() {

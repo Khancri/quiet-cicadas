@@ -10,7 +10,7 @@ import { getUsername, updateInfo } from './userInfo.js';
 import { twemoji } from './twemoji.js';
 import * as db from './db.js'
 import { pfpValid } from './profiles.js';
-import { changeMainPanel, updateEncryptedInfo, renderChannelHistory, createNotificationBadge  } from './ui.js';
+import { changeMainPanel, updateEncryptedInfo, renderChannelHistory, createNotificationBadge, createFriendRanking, createFriendRequest  } from './ui.js';
 import * as states from './state.js'
 import linkSocket from './socket.js'
 import {linkDefaultEventListeners} from './events.js';
@@ -41,6 +41,14 @@ const daata = {
     }
 }
 changeMainPanel(document.getElementById('t-friendsList'))
+const entries = await emitAsync(socket, 'view_friends')
+console.log(entries)
+for (const friend of entries.friends) {
+    createFriendRanking(friend);
+}
+for (const request of entries.requests) {
+    createFriendRequest(request);
+}
 await cacheCheck();
 if (!await db.retrievePrivateKey()) {
     keys.regenRSAKeys();

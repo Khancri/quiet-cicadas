@@ -77,10 +77,16 @@ export function createFriendRequest(user) {
 
     friendRequestEl.querySelector('img').src = `/pfp/${user}`
 
-    friendRequestEl.querySelector('button[data-action="accept"]').onclick = () => {
+    friendRequestEl.querySelector('button[data-action="accept"]').onclick = (e) => {
         socket.emit('friend_request', {user: user, action: 'accept'})
         friendRequestEl.remove();
         createFriendRanking(user)
+        e.stopImmediatePropagation();
+    }
+    friendRequestEl.querySelector('button[data-action="decline"]').onclick = (e) => {
+        socket.emit('friend_request', {user: user, action: 'decline'})
+        friendRequestEl.remove();
+        e.stopImmediatePropagation();
     }
     friendRequestEl.onclick = async (e) => {
         const { pageX: x, pageY: y } = e;

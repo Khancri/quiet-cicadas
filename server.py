@@ -228,7 +228,7 @@ def loadWholeCache(person):
 def chat():
     if not 'username' in session.keys():
         return abort(403);
-    return send_from_directory('html', 'chat.html')
+    return send_from_directory('html', 'chats.html')
 
 @app.route('/')
 def main():
@@ -281,6 +281,7 @@ def upload_file():
         users = load('keys.json')[channel]['users']
         users.pop(users.index(session['username']))
     content = file.read()
+    print(users)
     hash = hashlib.sha256(content).hexdigest()
     attachmentData = {
         'content': content,
@@ -425,6 +426,7 @@ def delete_account():
     db_execute('DELETE FROM channel_keys WHERE username = ?', (session['username'],), commit=True)
     db_execute('DELETE FROM profiles WHERE username = ?', (session['username'],), commit=True)
     session.clear()
+    os.remove(f'pfps/${session['username']}')
     return '', 200
 
 @app.route('/signup', methods=['POST'])

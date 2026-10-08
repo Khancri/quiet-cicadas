@@ -56,11 +56,16 @@ document.getElementById('pfp-input').onchange = (e) => {
 const enterListener = (func) => {
 
     if (e.key !== 'Enter') {
-
+        func()
     }
 }
 
-document.getElementById('username-submit').onclick = async () => {
+document.getElementById('username-submit').onclick = start
+document.getElementById('username-input').onkeydown = (e) => {
+    if (e.key !== 'Enter') return
+    start()
+}
+    async function start() {
     username = document.getElementById('username-input').value;
     if (cropper !== undefined) {
         console.log('ehre')
@@ -96,9 +101,11 @@ document.getElementById('username-submit').onclick = async () => {
             password = document.getElementById('password-input').value;
             signUp()
         }
-        document.getElementById('password-input').oninput = (e) => {
-            if (e.key !== 'Enter') return;
-            const _input = document.getElementById('password-input').value;
+        document.getElementById('password-input').onkeydown = (e) => {
+            console.log('entered heh heh')
+
+	    if (e.key !== 'Enter') return;
+            password = document.getElementById('password-input').value;
             
             signUp();
         }
@@ -111,6 +118,7 @@ document.getElementById('username-submit').onclick = async () => {
 };
 
 async function logIn() {
+    document.getElementById('password-input').disabled = true;
     const done = await fetch('/login', {method: 'POST', headers: {'Content-Type': 'application/json'}, 
         body: JSON.stringify({'username': username, 'password': password})});
     if (!done.ok) {
@@ -131,6 +139,7 @@ async function logIn() {
         return;
     }
     pfpUpload();
+    document.getElementById('password-input').disabled = false;
 }
 
 async function pfpUpload() {
@@ -145,6 +154,7 @@ async function pfpUpload() {
 }
 
 async function signUp() {
+    document.getElementById('password-input').disabled = true;
     document.getElementById('password-invalid').hidden = !(password.length < 8);
     document.getElementById('password-input').classList.toggle('r', password.length < 8)
     if (password.length < 8) return;
@@ -177,4 +187,5 @@ async function signUp() {
         return;
     }
     pfpUpload();
+    document.getElementById('password-input').disabled = false;
 }

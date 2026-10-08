@@ -229,7 +229,19 @@ document.getElementById('attachment-input').onchange = (e) => {
 
 export function friendsList() {
     messageInput = undefined;
+    
+    const friendRequest = async () => {
+        const user = document.getElementById('friend-request-field').value.trim()
+        if (user === '') {document.querySelector('.friend-error').hidden = true; return;}
+        const valid = (await (await fetch(`/profile/exists/${user}`)).json()).ok
+        document.querySelector('.friend-error').hidden = valid;
+        socket.emit('friend_request', {action: 'add', user})
+    }
     document.getElementById('friend-request-button').onclick = () => {
-        socket.emit('friend_request', {action: 'add', user: document.getElementById('friend-request-field').value.trim()})
+        friendRequest()
+    }
+    document.getElementById('friend-request-field').onkeydown = (e) => {
+        if (e.key !== 'Enter') return
+        friendRequest()
     }
 }
