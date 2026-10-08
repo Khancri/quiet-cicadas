@@ -307,7 +307,9 @@ function newChannel(channelName, callback) {
     checkEmpty(document.getElementById('channelList'))
     const channelRanking = document.querySelector('#t-channelRanking').content.cloneNode(true);
     channelRanking.querySelector('span').innerText = channelName;
-    channelRanking.querySelector('.channel-exit').onclick = () => closeChannel(channelName)
+    channelRanking.querySelector('.channel-exit').onclick = () => {closeChannel(channelName);setTimeout(() => {
+        checkEmpty(document.getElementById('channelList'))
+    },1);}
     console.log(channelRanking);
     document.querySelector('#channelList').appendChild(channelRanking);
     const list = document.querySelectorAll('#channelList > .dm-item');
@@ -334,7 +336,10 @@ async function newDirectMessageChannel(user, callback) {
     
     channelRanking.querySelector('img').src = `/pfp/${user}`
     
-    channelRanking.querySelector('.channel-exit').onclick = () => closeChannel('@' + user)
+    channelRanking.querySelector('.channel-exit').onclick = () => {closeChannel('@' + user),
+    setTimeout(() => {
+        checkEmpty(document.getElementById('dmList'))
+    },1);}
     channelRanking.onclick = (e) => {
         if (e.closest('.channel-exit')) {
             // console.log('nun')

@@ -54,13 +54,13 @@ if (!await db.retrievePrivateKey()) {
     keys.regenRSAKeys();
 }
 
-// renderChannelHistory(); 
+renderChannelHistory(); 
 // messagesLib.newChannel('general', async () => {
 //     changeMessageBox('general')
 // });
 
 // await changeMessageBox('general');
-states.setChannel('general')
+// states.setChannel('general')
 async function cacheCheck() {
     // updateEncryptedInfo('Grabbing Cache..')
     const cache = await emitAsync(socket, 'cachegrab')

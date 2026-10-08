@@ -23,6 +23,8 @@ app = Flask(__name__, static_folder='.')
 socketio = flask_socketio.SocketIO(app, cors_allowed_origins=[
     "https://quietcicadas.duckdns.org",
     "wss://quietcicadas.duckdns.org",
+    "wss://cicadas.khancri.xyz",
+    "https://cicadas.khancri.xyz",
     "http://localhost:8000",
     "ws://localhost:8000"
 ], async_mode='gevent')
