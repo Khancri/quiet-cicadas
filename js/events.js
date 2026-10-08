@@ -32,7 +32,7 @@ export function linkDefaultEventListeners() {
         const data = await emitAsync(socket, 'view-profile', {user: getUsername()})
         document.getElementById('pronouns').value = data.pronouns ?? ''
         document.getElementById('bio').value = data.bio ?? ''
-        document.getElementById('handle').value = getUsername();
+        document.getElementById('status').value = getUsername();
         document.getElementById('display-name').value = data.displayName ?? getUsername();
         document.getElementById('edit-profile').hidden = false;
         document.querySelector('.pfp-edit-wrap img').src = '/pfp/'+getUsername();

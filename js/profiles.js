@@ -1,4 +1,5 @@
 import { socket } from "./chats.js";
+import { saveCache } from "./db.js";
 import { getUsername } from "./userInfo.js";
 function emitAsync(socket, event, data) {
   return new Promise((resolve) => {
@@ -14,12 +15,11 @@ export async function showProfileModal(username, clickEvent, position) {
     prof.style.left = `${position.x}px`
     prof.querySelector('#modal-username').style.textTransform = 'capitalize';
     prof.querySelector('#modal-username').innerText = data.displayName;
-    prof.querySelector('.handle').innerText = username;
     const glowWrap = prof.querySelector('.pfp-glow-wrap');
     
     prof.querySelector('.modal-pfp').src = `/pfp/${username}?q=${encodeURIComponent(new Date().getTime())}`
     prof.querySelector('.modal-pfp').style.display = 'block';
-    glowWrap.style.setProperty('--glow-pfp', `url(/pfp/${username})`);
+
     if (username === getUsername()) prof.querySelector('.button').hidden = true;
     else prof.querySelector('.button').hidden = false;
     if (data.friend) {
@@ -83,3 +83,8 @@ export async function pfpValid(username) {
     return [true]
 }
 
+export async function cacheProfile(user) {
+    const profile = await emitAsync(socket,'view-profile', {user})
+    console.log(profile)
+    saveCache(user, profile)
+}

@@ -9,7 +9,7 @@ import * as messagesLib from './messageLib.js'
 import { getUsername, updateInfo } from './userInfo.js';
 import { twemoji } from './twemoji.js';
 import * as db from './db.js'
-import { pfpValid } from './profiles.js';
+import { cacheProfile, pfpValid } from './profiles.js';
 import { changeMainPanel, updateEncryptedInfo, renderChannelHistory, createNotificationBadge, createFriendRanking, createFriendRequest  } from './ui.js';
 import * as states from './state.js'
 import linkSocket from './socket.js'
@@ -337,7 +337,8 @@ async function checkUser() {
     }
     
     updateInfo(username);
-    document.getElementById('current-user-username').innerText = username;
+    await cacheProfile(username)
+    document.getElementById('current-user-username').innerText = messagesLib.userToDisplayName(username);
 }
 
 export async function getMessages1() {

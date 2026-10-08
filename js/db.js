@@ -227,3 +227,10 @@ export function isUnread(channel) {
     if (orig === null || !orig[channel]) return false;
     return orig[channel]
 }
+
+export function saveCache(user, stuff) {
+    localStorage.setItem(user, JSON.stringify(stuff))
+}
+export function loadCache(user) {
+    return JSON.parse(localStorage.getItem(user))
+}

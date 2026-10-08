@@ -1,12 +1,17 @@
 import { getUsername } from "./userInfo.js";
 import { twemoji } from "./twemoji.js";
 import * as states from './state.js'
-import { pfpValid, showProfileModal } from "./profiles.js";
+import { cacheProfile, pfpValid, showProfileModal } from "./profiles.js";
 import { decryptMessage } from "./crypto.js";
-import { getAttachment, isUnread, retrievePrivateKey, saveAttachment } from "./db.js";
+import { getAttachment, isUnread, retrievePrivateKey, saveAttachment, loadCache } from "./db.js";
 import { changeMessageBox, socket } from "./chats.js";
 import { getDMChannelName } from "./utils.js";
 import { createNotificationBadge } from "./ui.js";
+
+export function userToDisplayName(user) {
+    if (loadCache(user) === null) cacheProfile(user);
+    return loadCache(user)?.displayName || user
+}
 
 async function createMessage(data, id, channel, socket) {
     var message = document.getElementById('t-message').content.cloneNode(true).childNodes[1];
@@ -40,7 +45,7 @@ async function createMessage(data, id, channel, socket) {
     const metadata = message.querySelector('.metadata');
 
     const usernameEl = message.querySelector('.username');
-    usernameEl.innerText = data.user;
+    usernameEl.innerText = userToDisplayName(data.user);
     usernameEl.onclick = async (e) => {
         const { pageX: x, pageY: y } = event;
         e.stopPropagation();

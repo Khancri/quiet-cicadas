@@ -145,10 +145,15 @@
             <input id="display-name" type="text" value="jade" maxlength="32">
         </div>
 
-        <div class="handle-pronouns">
+        <div class="status-pronouns">
             <div class="field">
-            <label for="handle">handle</label>
-            <input id="handle" type="text" value="jade_cicada" maxlength="24">
+            <label for="status">status</label>
+            <select id="status" maxlength="24">
+                <option value="online">online</option>
+                <option value="idle">idle</option>
+                <option value="dnd">do not disturb.</option>
+            </select>
+
             </div>
             <div class="field">
             <label for="pronouns">pronouns</label>
@@ -162,7 +167,7 @@
             <span class="char-count">57 / 160</span>
         </div>
 
-        <!-- <div class="field">
+        <div class="field">
             <label>status</label>
             <div class="status-options">
             <div class="status-dot-btn active"><span class="dot online"></span>online</div>
@@ -170,7 +175,7 @@
             <div class="status-dot-btn"><span class="dot dnd"></span>dnd</div>
             <div class="status-dot-btn"><span class="dot offline"></span>offline</div>
             </div>
-        </div> -->
+        </div>
 
         <div class="field">
             <label for="custom-status">custom status</label>

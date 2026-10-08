@@ -124,7 +124,7 @@ export function createFriendRanking(user) {
     }
 
     const channelRanking = document.querySelector('#t-friendRanking').content.cloneNode(true).childNodes[1];
-    channelRanking.querySelector('span').innerText = user;
+    channelRanking.querySelector('span').innerText = messagesLib.userToDisplayName(user);
     channelRanking.onclick = async (e) => {
         const { pageX: x, pageY: y } = e;
         e.stopPropagation();
