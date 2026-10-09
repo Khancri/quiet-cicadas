@@ -241,7 +241,10 @@ def main():
 
 @app.route('/file/<path:name>')
 def get_file(name):
-    folders = name.split('/')
+    split:list[str] = name.split('/')
+    folders = []
+    for folder in split: 
+        if folder != '..': folders.append(folder)
     print(f'{name} |:| {folders}')
     if len(folders) == 1:
         return "Fuck you !"
