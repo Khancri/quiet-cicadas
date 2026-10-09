@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 load_dotenv()
 import sqlite3
 
-app = Flask(__name__, static_folder='.')
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 socketio = flask_socketio.SocketIO(app, cors_allowed_origins=[
     "https://quietcicadas.duckdns.org",
     "wss://quietcicadas.duckdns.org",
@@ -230,22 +230,22 @@ def loadWholeCache(person):
 def chat():
     if not 'username' in session.keys():
         return abort(403);
-    return send_from_directory('html', 'chats.html')
+    return send_from_directory('static/html', 'chats.html')
 
 @app.route('/')
 def main():
     if 'username' in session.keys():
         return redirect('/chat')
-    return send_from_directory('html', 'client.html')
+    return send_from_directory('static/html', 'client.html')
 #endregion
 
 @app.route('/file/<path:name>')
 def get_file(name):
     folders = name.split('/')
-    print(folders)
+    print(f'{name} |:| {folders}')
     if len(folders) == 1:
-        return send_from_directory('.', folders[0])
-    return send_from_directory(f'./{'/'.join(folders[:-1])}', folders[-1])
+        return "Fuck you !"
+    return send_from_directory(f'static/{'/'.join(folders[:-1])}', folders[-1])
 
 USERNAME_RE = re.compile(r'^[a-zA-Z0-9_-]{1,30}$')
 
@@ -407,15 +407,15 @@ def unauthorized(e):
 
 @app.route('/404')
 def route404():
-    return send_from_directory('html', '404.html')
+    return send_from_directory('static/html', '404.html')
 
 @app.route('/403')
 def route403():
-    return send_from_directory('html', '403.html')
+    return send_from_directory('static/html', '403.html')
 
 @app.route('/401')
 def route401():
-    return send_from_directory('html', '401.html')
+    return send_from_directory('static/html', '401.html')
 #endregion
 @app.route('/logout', methods=['POST'])
 def logout():
@@ -675,7 +675,7 @@ typing = {}
 
 @app.route('/keypass')
 def keypass():
-    return send_from_directory('html', 'keypass.html')
+    return send_from_directory('static/html', 'keypass.html')
 
 @app.route('/api/token/<string:token>')
 @login_required

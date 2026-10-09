@@ -97,8 +97,12 @@ document.getElementById('direct-message').onclick = async () => {
     
     chats.getMessages1();
 }
+const greenDot = document.querySelector('.header .dot.g')
 
-document.querySelector('.header .dot.g').onclick = async () => {
+greenDot.onclick = async () => {
+    document.querySelector('.header').style.background = 'var(--accent)'
+    greenDot.classList.remove('g')
+    greenDot.classList.add('x')
     messagesLib.undoAllActiveChannels();
     changeMainPanel(document.getElementById('t-friendsList'), true);
     const entries = await emitAsync(socket, 'view_friends')
