@@ -86,6 +86,9 @@ document.getElementById('add-new-dm').addEventListener('click', async () => {
 
 document.getElementById('direct-message').onclick = async () => {
     const user = prompt('who do you want to dm?')
+    const req = await fetch(`/profile/exists/${user}`)
+    console.log(req)
+    if (!((req).json.exists)) return;
     await messagesLib.newDirectMessageChannel(user, async () => {
             await chats.changeMessageBox(`@${user}`);
         });
@@ -97,22 +100,59 @@ document.getElementById('direct-message').onclick = async () => {
     
     chats.getMessages1();
 }
-const greenDot = document.querySelector('.header .dot.g')
+const dotC = (dotColor, headerColor, ) => {
+    return {
+        dotColor,
+        headerColor
+    }
+}
 
-greenDot.onclick = async () => {
-    document.querySelector('.header').style.background = 'var(--accent)'
-    greenDot.classList.remove('g')
-    greenDot.classList.add('x')
-    messagesLib.undoAllActiveChannels();
-    changeMainPanel(document.getElementById('t-friendsList'), true);
-    const entries = await emitAsync(socket, 'view_friends')
-    console.log(entries)
-    for (const friend of entries.friends) {
-        createFriendRanking(friend);
-    }
-    for (const request of entries.requests) {
-        createFriendRequest(request);
-    }
+const dots = {
+    g: {
+        colors: dotC('#8aad6e', '#425234'),
+        callbackFn: async () => {
+            changeMainPanel(document.getElementById('t-friendsList'), true);
+            messagesLib.undoAllActiveChannels();
+            const entries = await emitAsync(socket, 'view_friends')
+            console.log(entries)
+            for (const friend of entries.friends) {
+                createFriendRanking(friend);
+            }
+            for (const request of entries.requests) {
+                createFriendRequest(request);
+            }
+        }
+    },
+    r: {
+        callbackFn: async () => {
+            return
+        }
+    },
+    y: {
+        callbackFn: async () => {
+            return
+        }
+    },
+    
+}
+
+const greenDot = document.querySelector('.header .dot.g')
+const yellowDot = document.querySelector('.header .dot.y')
+const redDot = document.querySelector('.header .dot.r')
+const header = document.querySelector('.header')
+
+greenDot.onclick = () => dotClick('g')
+yellowDot.onclick = () => dotClick('y')
+redDot.onclick = () => dotClick('r')
+
+function dotClick(dotLetter)  {
+    const dotEl = document.querySelector('.header .dot.'+dotLetter)
+    console.log(dotEl,'\n','.header .dot.'+dotLetter)
+    header.classList.remove('r', 'g', 'y')
+    header.classList.add(dotLetter)
+    greenDot.classList.remove('x'); yellowDot.classList.remove('x'); redDot.classList.remove('x'); 
+    dotEl.classList.add('x')
+    dots[dotLetter].callbackFn()
 }
 
 
@@ -125,8 +165,6 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 })
-
-document.querySelector('.header .dot.r').onclick = () => window.close()
 
 document.querySelector('.hamburger').onclick = () => {
     document.querySelector('.sidebar').style.transform = 'none';
@@ -248,4 +286,10 @@ export function friendsList() {
         if (e.key !== 'Enter') return
         friendRequest()
     }
+}
+export const resetDots = () => {
+    document.querySelector('.dot.g').classList.remove('x'); 
+    document.querySelector('.dot.r').classList.remove('x'); 
+    document.querySelector('.dot.y').classList.remove('x'); 
+    document.querySelector('.header').classList.remove('r', 'g', 'y')
 }

@@ -17,15 +17,20 @@ body {
     font-size: 0.75rem;
     color: var(--text-muted);
     flex-shrink: 0;
+    transition: background 240ms ease-in;
 }
+.header.r {background:#3C2720;}
+.header.g {background:#212a1e;}
+.header.y {background:#333021;}
 .header .dots { display: flex; gap: 0.375rem; }
-.header .dot  { width: 0.625rem; height: 0.625rem; border-radius: 50%; transition: all .15s ease-in;}
+.header .dot  { width: 0.625rem; height: 0.625rem; border-radius: 50%; transition: transform 150ms ease-in, background 240ms ease-in;}
 .header .dot:hover  { transform: scale(1.4); }
 .header .dot.r { background: #7a4040; }
 .header .dot.y { background: #7a6a40; }
+.header .dot.g { background: #5e7b48; }
 .header .dot.x { background: black; opacity: 1; }
-.header .dot.g { background: var(--accent); opacity: .7; }
-#current-user-username {
+
+#current-user-username {    
     font-size: 0.6875rem;
     color: var(--accent2);
     cursor: pointer;

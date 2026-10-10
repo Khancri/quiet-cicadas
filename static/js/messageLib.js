@@ -7,6 +7,7 @@ import { getAttachment, isUnread, retrievePrivateKey, saveAttachment, loadCache 
 import { changeMessageBox, socket } from "./chats.js";
 import { getDMChannelName } from "./utils.js";
 import { createNotificationBadge } from "./ui.js";
+import { resetDots } from "./events.js";
 
 export function userToDisplayName(user) {
     if (loadCache(user) === null) cacheProfile(user);
@@ -314,7 +315,10 @@ function newChannel(channelName, callback) {
     document.querySelector('#channelList').appendChild(channelRanking);
     const list = document.querySelectorAll('#channelList > .dm-item');
     console.log(list[list.length-1]);
-    list[list.length-1].onclick = callback;
+    list[list.length-1].onclick = () => {
+        resetDots()
+        callback()
+    };
     list[list.length-1].dataset.channelData = encodeURIComponent(channelName);
     addChannelToHistory(channelName)
     if (isUnread(channelName)) createNotificationBadge(channelName)
@@ -352,8 +356,8 @@ async function newDirectMessageChannel(user, callback) {
     
     const list = document.querySelectorAll('#dmList > .dm-item');
     list[list.length-1].dataset.userData = encodeURIComponent(user);
-    list[list.length-1].onclick = (e) => {
-        console.log('hi')
+    list[list.length-1].onclick = () => {
+        resetDots()
         callback()
     };
     console.log(list[list.length-1]);
