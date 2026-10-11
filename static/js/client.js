@@ -89,7 +89,7 @@ document.getElementById('username-input').onkeydown = (e) => {
             password = document.getElementById('password-input').value;
             logIn()
         }
-        document.getElementById('password-input').oninput = (e) => {
+        document.getElementById('password-input').onkeydown = (e) => {
             if (e.key !== 'Enter') return;
             password = document.getElementById('password-input').value;
             logIn();

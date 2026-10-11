@@ -91,21 +91,13 @@ async function cacheCheck() {
 }
 
 
-async function subscribeToPush() {
+export async function subscribeToPush() {
     const json = await fetch('/api/notificationKey')
     var notifkey = (await (json).json()).key;
     const serviceWorker_sw = await navigator.serviceWorker.register('file/js/sw.js')
-    // serviceWorker_sw.addEventListener('updatefound', () => {
-    //     const newWorker = reg.installing;
-    //     newWorker.addEventListener('statechange', () => {
-    //     // Check if the new service worker is installed and waiting
-    //     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-    //         // Prompt user to refresh, e.g., show a banner: "Update Available"
-    //         alert("New version available! Refresh to update.");
-    //     }
-    //     });
-    // });
-    
+    console.log('but are you here tho')
+console.log(await serviceWorker_sw.pushManager.getSubscription())
+console.log(Notification.permission)
     console.log(notifkey)
     console.log('here')
     notifkey = urlBase64ToUint8Array(notifkey);

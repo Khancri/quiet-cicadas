@@ -83,6 +83,13 @@ curs.executescript("""
         FOREIGN KEY (person1) REFERENCES profiles(username),
         FOREIGN KEY (person2) REFERENCES profiles(username)
     );
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+        username TEXT NOT NULL,
+        endpoint TEXT NOT NULL UNIQUE,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
 """)
 
 tokens = {}
@@ -342,9 +349,14 @@ def login():
     return jsonify({'ok': False})
 
 def send_push(username, title, body, url="/"):
-    if not username in load('subscriptions.json').keys():
-        return
-    subscription_info = load('subscriptions.json')[username]
+    db_pull = db_execute('SELECT (endpoint, p256dh, auth) FROM push_subscriptions', fetch='one')
+    subscription_info = {
+        "endpoint": row["endpoint"],
+        "keys": {
+            "p256dh": row["p256dh"],
+            "auth": row["auth"]
+        }
+    }
     try:
         webpush(
             subscription_info=subscription_info,
@@ -356,36 +368,33 @@ def send_push(username, title, body, url="/"):
             vapid_private_key=VAPID_PRIVATE_KEY,
             vapid_claims=VAPID_CLAIMS
         )
-        print('hi')
+        print('YOU ARE NOT GOING TO IGNORE THIS I TELL YOU YOU WILL PAY ATTENTION TO THIS MESSAGE AD YOU WILL KNOW WHAT IT MEANS SOLIDER! AS PUNISHMENT, 100 NEWLINES\nBEGIN!\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
     except WebPushException as e:
         print("push failed:", repr(e))
 
 def save_subscription(handle, data):
-    meow = load('subscriptions.json')
-    meow[handle] = data
-    save('subscriptions.json', meow)
-
+    db_execute(
+        """INSERT INTO push_subscriptions (username, endpoint, p256dh, auth)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(endpoint) DO UPDATE SET
+             username = excluded.username,
+             p256dh = excluded.p256dh,
+             auth = excluded.auth""",
+        (handle, data['endpoint'], data['keys']['p256dh'], data['keys']['auth'],),
+        commit=True
+    )
+    print(handle, data['endpoint'], data['keys']['p256dh'], data['keys']['auth'])
 @app.route('/api/notificationKey')
 def notification_key():
-    # der_key = 'MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgn8hsmZwHZ32+gMNV4EAvLWh5SuDllRXNWXiFSPthteChRANCAAQcsUEPoZ9nElkSWTERmw8YOsJB8MihBp1f1ht0kd8i3tBdR6ZwhcrYx8K1RwZ6xLVxRzt1WNfhStrZUSqDlko5'
-    # padded = der_key + '=' * (-len(der_key) % 4)
-    # der_bytes = base64.urlsafe_b64decode(padded)
-
-    # raw_point = der_bytes[-65:]  # strip DER header, keep raw point
-
-    # raw_b64url = base64.urlsafe_b64encode(raw_point).rstrip(b'=').decode()
-    # print(raw_b64url)
-    return jsonify({'key': 'MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgn8hsmZwHZ32+gMNV4EAvLWh5SuDllRXNWXiFSPthteChRANCAAQcsUEPoZ9nElkSWTERmw8YOsJB8MihBp1f1ht0kd8i3tBdR6ZwhcrYx8K1RwZ6xLVxRzt1WNfhStrZUSqDlko5'})
+    return jsonify({'key': 'BKek0VFKoVT-TwRo8w-YimEWbTEQ6lupjYecj5AayETIeSYlC54RHFtWXZmSr7lys8jQt5xwLm9cDu7wRSRkeNA'})
 
 @app.route('/api/subscribe', methods=['POST'])
 @login_required
 def subscribe():
-    # return redirect('https://scrollx.org')
     sub_data = request.get_json()
-    user_id = session.get('username')  # however you track the user
+    user_id = session.get('username')
         
-    # store sub_data as json, keyed to user_id
-    save_subscription(user_id, sub_data)
+    #save_subscription(user_id, sub_data)
     
     return '', 201
 

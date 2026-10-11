@@ -11,7 +11,7 @@ export function linkDefaultEventListeners() {
     document.getElementById('logout').onclick = async () => {
         const thing = await fetch('logout', {method: 'POST'});
         await db.obliterate();
-        alert('everything obliterated!')
+        window.location.href = '/'
     }
     document.querySelector('.overlay-label').onclick = () => {
         document.getElementById('pfp-file-input').click();
@@ -186,7 +186,8 @@ var timeout;
         console.log('notificatins')
         const permission = await Notification.requestPermission();
         if (permission === 'granted' || Notification.permission === 'granted') {
-            subscribeToPush();
+            console.log("HEY I'M EHRE I'M EHRE")
+            chats.subscribeToPush();
         } else {
             console.log('user said no lol');
         }
@@ -274,10 +275,16 @@ export function friendsList() {
     
     const friendRequest = async () => {
         const user = document.getElementById('friend-request-field').value.trim()
-        if (user === '') {document.querySelector('.friend-error').hidden = true; return;}
+        if (user === '') {document.querySelector('.friend-status').hidden = true; return;}
         const valid = (await (await fetch(`/profile/exists/${user}`)).json()).ok
-        document.querySelector('.friend-error').hidden = valid;
+        const friendStatus = document.querySelector('.friend-status')
+        if (valid) {
+            friendStatus.innerText = "friend request sent!";
+        } else {
+            friendStatus.innerText = "this guy late to the party mann ●︿●"
+        }
         socket.emit('friend_request', {action: 'add', user})
+        document.querySelector('.friend-status').hidden = false;
     }
     document.getElementById('friend-request-button').onclick = () => {
         friendRequest()
