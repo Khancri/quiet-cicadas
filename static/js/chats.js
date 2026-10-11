@@ -17,7 +17,7 @@ import {linkDefaultEventListeners} from './events.js';
 import {emitAsync, getUserFromChannel, getDMChannelName} from './utils.js';
 import * as keys from './keys.js';
 
-export const socket = io({ transports: ['polling']});
+export const socket = io({ transports: ['websocket']});
 console.log(socket.io.engine.transport.name)
 
 

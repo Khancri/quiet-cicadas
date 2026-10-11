@@ -84,19 +84,20 @@ export function createFriendRequest(user) {
     friendRequestEl.querySelector('img').src = `/pfp/${user}`
 
     friendRequestEl.querySelector('button[data-action="accept"]').onclick = (e) => {
+        e.stopImmediatePropagation();
         socket.emit('friend_request', {user: user, action: 'accept'})
         friendRequestEl.remove();
         createFriendRanking(user)
-        e.stopImmediatePropagation();
     }
     friendRequestEl.querySelector('button[data-action="decline"]').onclick = (e) => {
+        e.stopPropagation();
         socket.emit('friend_request', {user: user, action: 'decline'})
         friendRequestEl.remove();
-        e.stopImmediatePropagation();
     }
     friendRequestEl.onclick = async (e) => {
-        const { pageX: x, pageY: y } = e;
+        if (parentElement !== event.target && parentElement.contains(event.target)) return
         e.stopPropagation();
+        const { pageX: x, pageY: y } = e;
         const prof = document.getElementById('profile')
         const clickEvent = (e) => {
             if (e.target.closest('#profile')) return;
@@ -107,9 +108,6 @@ export function createFriendRequest(user) {
         await showProfileModal(user, clickEvent, {x, y})
         document.addEventListener('click', clickEvent);
     };
-    friendRequestEl.querySelector('button[data-action="decline"]').onclick = () => {
-        socket.emit('friend_request', {user: user, action: 'decline'})
-    }
     friendRequestEl.onclick = (e) => showProfileModal(user, e, {x: e.pageX, y:e.pageY})
     friendRequestEl.dataset.friendData = encodeURIComponent(user);
     friendRequestEl.addEventListener('mouseenter', (e) => {

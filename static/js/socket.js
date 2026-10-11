@@ -1,4 +1,4 @@
-import { createNotificationBadge, updateEncryptedInfo, checkMainPanel, createFriendRequest } from './ui.js'
+import { createNotificationBadge, updateEncryptedInfo, checkMainPanel, createFriendRequest, createFriendRanking } from './ui.js'
 import * as states from './state.js'
 import * as RSA from './rsa.js'
 import * as cryptoAPI from './crypto.js'
@@ -128,7 +128,12 @@ export default function linkSocket(socket) {
     })
     socket.on('friendData', (data) => {
         if (!checkMainPanel('t-friendsList')) return
-        createFriendRequest(data['sender']);
+        console.log('I\'M FUCKING HERE YKNOW??')
+        if (data.action === 'add') createFriendRequest(data['sender']);
+        if (data.action === 'accept') {
+            document.querySelector('.friend-status').hidden = true;
+            createFriendRanking(data['sender'])
+        }
     })
 
 }
