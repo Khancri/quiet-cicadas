@@ -749,7 +749,8 @@ hr {
     color: var(--accent2);
     margin: 0.625rem;
 }
-.friend-error {
-    color: var(--burgundy);
+.friend-status {
+    color: var(--accent);
     font-size: 0.875rem;
 }
+.friend-status.error { color: var(--burgundy); }

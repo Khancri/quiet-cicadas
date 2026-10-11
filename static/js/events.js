@@ -280,8 +280,10 @@ export function friendsList() {
         const friendStatus = document.querySelector('.friend-status')
         if (valid) {
             friendStatus.innerText = "friend request sent!";
+            friendStatus.classList.remove('error')
         } else {
             friendStatus.innerText = "this guy late to the party mann ●︿●"
+            friendStatus.classList.add('error')
         }
         socket.emit('friend_request', {action: 'add', user})
         document.querySelector('.friend-status').hidden = false;
