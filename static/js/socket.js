@@ -1,4 +1,4 @@
-import { createNotificationBadge, updateEncryptedInfo } from './ui.js'
+import { createNotificationBadge, updateEncryptedInfo, checkMainPanel, createFriendRequest } from './ui.js'
 import * as states from './state.js'
 import * as RSA from './rsa.js'
 import * as cryptoAPI from './crypto.js'
@@ -125,6 +125,10 @@ export default function linkSocket(socket) {
             messagesLib.react(data.id, data.channel, data.reaction, data.user, data.action);
         }
         db.updateReactions(data.id, data.reaction, data.user, data.channel, data.action)
+    })
+    socket.on('friendData', (data) => {
+        if (!checkMainPanel('t-friendsList')) return
+        createFriendRequest(data['sender']);
     })
 
 }

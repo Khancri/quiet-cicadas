@@ -751,6 +751,7 @@ def friend_request(data):
         case 'add':
             if db_execute('SELECT 1 FROM friend_request WHERE sender = ? AND receiver = ?', (session['username'], data['user']), fetch='one') != None: return
             db_execute('INSERT INTO friend_request (sender, receiver) VALUES (?, ?)', (session['username'], data['user']), commit=True)
+            socketio.emit('friendData', {'sender': session['username']}, to=user_sockets[data['user']])
         case 'decline':
             db_execute('DELETE FROM friend_request WHERE sender = ? AND receiver = ?', (data['user'], session['username']), commit=True)
         case 'accept':

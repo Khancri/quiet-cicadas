@@ -45,6 +45,12 @@ export function changeMainPanel(template, clean = false) {
     }
 }
 
+export function checkMainPanel(templateId) {
+    const mainPanel = document.getElementById('mainPanel');
+    if (mainPanel.dataset.name === templateId) return true;
+    return false
+}
+
 export function renderChannelHistory() {
     const history = messagesLib.getChannelHistory();
     if (history == null) return
