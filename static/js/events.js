@@ -69,7 +69,9 @@ document.getElementById('current-user-username').onclick = async (e) => {
     })
 };
 document.getElementById('add-new-dm').addEventListener('click', async () => {
-    states.setChannel( prompt('what channel'))
+    const _channel = prompt('what channel')
+    if (!_channel) return
+    states.setChannel( _channel)
     const channelname = states.channel;
     messagesLib.newChannel(channelname, async () => {
         await chats.changeMessageBox(channelname);
