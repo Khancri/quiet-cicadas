@@ -9,10 +9,13 @@ import re
 import hashlib
 import base64
 from flask_socketio import join_room, leave_room
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import uuid
 import emoji
 from secrets import token_urlsafe
 import bcrypt
+import logging
 from functools import wraps
 import json; import os;
 from dotenv import load_dotenv
@@ -25,10 +28,13 @@ socketio = flask_socketio.SocketIO(app, cors_allowed_origins=[
     "wss://quietcicadas.duckdns.org",
     "wss://cicadas.khancri.xyz",
     "https://cicadas.khancri.xyz",
-    "http://localhost:8000",
-    "ws://localhost:8000"
 ], async_mode='gevent')
 app.secret_key = os.environ['session_key']
+
+def real_ip():
+    return request.headers.get('CF-Connecting-IP', request.remote_addr)
+
+limiter = Limiter(real_ip, app=app)
 
 VAPID_PRIVATE_KEY = os.environ['notification_key']
 CORS(app)
@@ -443,6 +449,18 @@ def delete_account():
     os.remove(f'pfps/${session['username']}')
     return '', 200
 
+logging.basicConfig(filename='errors.log', level=logging.INFO)
+
+@app.route('/api/client-error', methods=['POST'])
+@limiter.limit("10/minute")
+def client_error():
+    data = request.get_json(silent=True) or {}
+    msg = str(data.get('message', ''))[:500]
+    src = str(data.get('source', ''))[:200]
+    line = str(data.get('line', ''))[:10]
+    logging.error(f"[client] {msg} @ {src}:{line} ua={request.headers.get('User-Agent','')[:100]}")
+    return '', 204
+
 @app.route('/signup', methods=['POST'])
 def signup():
     info = request.json
@@ -500,6 +518,22 @@ def on_join(data):
         join_room(data['room'])
         return
     join_room(data["room"])
+
+
+@socketio.on('msg')
+@login_required
+def message(data):
+    print(data)
+    hash = str(uuid.uuid4())
+    message_obj = {
+        'user': session['username'],
+        'content': data['content'],  # will be arraybuffer
+        'date': datetime.now().isoformat(),
+    }
+    if 'attachments' in data.keys():
+        message_obj['attachmentId'] = data['attachments'][0]
+    print(message_obj)
+    socketio.emit('onmsg', message_obj)
 
 @socketio.on('message')
 @login_required
