@@ -26,8 +26,12 @@ app = Flask(__name__, static_folder='static', static_url_path='/static')
 socketio = flask_socketio.SocketIO(app, cors_allowed_origins=[
     "https://quietcicadas.duckdns.org",
     "wss://quietcicadas.duckdns.org",
+    "https://localhost:5000",
+    "http://localhost:5000",
+    "ws://localhost:5000",
+    "wss://localhost:5000",
     "wss://cicadas.khancri.xyz",
-    "https://cicadas.khancri.xyz",
+    "https://cicadas.khancri.xyz/*",
 ], async_mode='gevent')
 app.secret_key = os.environ['session_key']
 

@@ -1,0 +1,21 @@
+does it work
+
+- core flow works end to end, no crashes
+- tested on a real device, not just the simulator/emulator
+- handles bad stuff gracefully (no internet, empty states, weird input)
+
+will you know when it breaks
+
+- crash reporting is set up
+- basic analytics so you can see what people actually do
+
+have real people touched it
+
+- at least 3-5 non-friends-who-love-you tried it without help
+- you watched where they got confused
+
+the boring but required stuff
+
+- privacy policy + terms if you collect anything
+- store listing ready (screenshots, description, icon)
+- no placeholder text or debug junk left in

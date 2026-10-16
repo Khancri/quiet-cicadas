@@ -119,6 +119,10 @@ export default function linkSocket(socket) {
         messages.scrollTop = messages.scrollHeight;
     });
 
+    socket.on('onmsg', (data) => {
+        //TODO: make this restricted to the #public channel and render messages, also make sure interface shows messages aren't encrypted
+    })
+
     socket.on('message_reacted', (data) => {
         console.log(data)
         if (data.channel == states.channel) {

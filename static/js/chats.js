@@ -20,7 +20,12 @@ import * as keys from './keys.js';
 export const socket = io({ transports: ['websocket']});
 console.log(socket.io.engine.transport.name)
 
-
+function report(message, source, line) {
+  navigator.sendBeacon('/api/client-error',
+    new Blob([JSON.stringify({message, source, line})], {type: 'application/json'}))
+}
+window.addEventListener('error', e => report(e.message, e.filename, e.lineno))
+window.addEventListener('unhandledrejection', e => report(String(e.reason)))
 const daata = {
     'uuid': {
         date: '2026-06-09T11:11:40.152Z',
